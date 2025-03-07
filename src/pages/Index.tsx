@@ -2,10 +2,7 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
-import ModulesFeatures from "@/components/ModulesFeatures";
 import Dashboard from "@/components/Dashboard";
-import Marketplace from "@/components/Marketplace";
-import IoTDemo from "@/components/IoTDemo";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -18,12 +15,9 @@ const Index = () => {
       <main className="flex-1">
         <Hero />
         <Features />
-        <ModulesFeatures />
         <Dashboard />
-        <Marketplace />
-        <IoTDemo />
         
-        {/* Added Dashboard section */}
+        {/* Dashboard section */}
         <div className="py-16 bg-gradient-to-b from-background to-karbon-50/30 dark:to-karbon-950/30">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Explore Our Holistic Dashboard</h2>
