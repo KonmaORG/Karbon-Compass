@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Menu, X, Leaf } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,10 +12,10 @@ const Navbar = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <a href="/" className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-2">
               <Leaf className="h-6 w-6 text-karbon-600" />
               <span className="text-xl font-bold text-foreground">KarbonLedger</span>
-            </a>
+            </Link>
           </div>
           
           <div className="hidden md:flex items-center space-x-6">
@@ -23,6 +24,7 @@ const Navbar = () => {
             <a href="#dashboard" className="text-foreground/80 hover:text-foreground transition-colors">Dashboard</a>
             <a href="#marketplace" className="text-foreground/80 hover:text-foreground transition-colors">Marketplace</a>
             <a href="#iot" className="text-foreground/80 hover:text-foreground transition-colors">IoT Integration</a>
+            <Link to="/applications" className="text-foreground/80 hover:text-foreground transition-colors">Interfaces</Link>
             <Button variant="default" className="bg-karbon-600 hover:bg-karbon-700 text-white">
               Get Started
             </Button>
@@ -48,6 +50,7 @@ const Navbar = () => {
             <a href="#dashboard" className="block py-2 text-foreground/80 hover:text-foreground">Dashboard</a>
             <a href="#marketplace" className="block py-2 text-foreground/80 hover:text-foreground">Marketplace</a>
             <a href="#iot" className="block py-2 text-foreground/80 hover:text-foreground">IoT Integration</a>
+            <Link to="/applications" className="block py-2 text-foreground/80 hover:text-foreground">Interfaces</Link>
             <Button variant="default" className="w-full bg-karbon-600 hover:bg-karbon-700 text-white mt-2">
               Get Started
             </Button>
