@@ -20,6 +20,7 @@ const Navbar = () => {
           
           <div className="hidden md:flex items-center space-x-6">
             <a href="#features" className="text-foreground/80 hover:text-foreground transition-colors">Features</a>
+            <Link to="/modules" className="text-foreground/80 hover:text-foreground transition-colors">Modules</Link>
             <Link to="/applications" className="text-foreground/80 hover:text-foreground transition-colors">Interfaces</Link>
             <Link to="/dashboard" className="text-foreground/80 hover:text-foreground transition-colors flex items-center">
               <LayoutDashboard size={18} className="mr-1" /> 
@@ -46,6 +47,7 @@ const Navbar = () => {
         <div className="md:hidden bg-background border-b">
           <div className="container mx-auto px-4 py-3 space-y-2">
             <a href="#features" className="block py-2 text-foreground/80 hover:text-foreground">Features</a>
+            <Link to="/modules" className="block py-2 text-foreground/80 hover:text-foreground">Modules</Link>
             <Link to="/applications" className="block py-2 text-foreground/80 hover:text-foreground">Interfaces</Link>
             <Link to="/dashboard" className="block py-2 text-foreground/80 hover:text-foreground flex items-center">
               <LayoutDashboard size={18} className="mr-1" /> 
