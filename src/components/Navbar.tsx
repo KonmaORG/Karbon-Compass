@@ -21,6 +21,9 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-6">
             <a href="#features" className="text-foreground/80 hover:text-foreground transition-colors">Features</a>
             <a href="#modules" className="text-foreground/80 hover:text-foreground transition-colors">Modules</a>
+            <a href="#dashboard" className="text-foreground/80 hover:text-foreground transition-colors">Dashboard</a>
+            <a href="#marketplace" className="text-foreground/80 hover:text-foreground transition-colors">Marketplace</a>
+            <a href="#iot" className="text-foreground/80 hover:text-foreground transition-colors">IoT Integration</a>
             <Link to="/applications" className="text-foreground/80 hover:text-foreground transition-colors">Interfaces</Link>
             <Link to="/dashboard" className="text-foreground/80 hover:text-foreground transition-colors flex items-center">
               <LayoutDashboard size={18} className="mr-1" /> 
@@ -48,6 +51,9 @@ const Navbar = () => {
           <div className="container mx-auto px-4 py-3 space-y-2">
             <a href="#features" className="block py-2 text-foreground/80 hover:text-foreground">Features</a>
             <a href="#modules" className="block py-2 text-foreground/80 hover:text-foreground">Modules</a>
+            <a href="#dashboard" className="block py-2 text-foreground/80 hover:text-foreground">Dashboard</a>
+            <a href="#marketplace" className="block py-2 text-foreground/80 hover:text-foreground">Marketplace</a>
+            <a href="#iot" className="block py-2 text-foreground/80 hover:text-foreground">IoT Integration</a>
             <Link to="/applications" className="block py-2 text-foreground/80 hover:text-foreground">Interfaces</Link>
             <Link to="/dashboard" className="block py-2 text-foreground/80 hover:text-foreground flex items-center">
               <LayoutDashboard size={18} className="mr-1" /> 
