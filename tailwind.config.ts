@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,33 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				karbon: {
+					50: '#f0f9f4',
+					100: '#dcefe2',
+					200: '#bddec8',
+					300: '#92c5a7',
+					400: '#63a480',
+					500: '#43896a',
+					600: '#326f53',
+					700: '#285944',
+					800: '#214738',
+					900: '#1d3b2f',
+					950: '#0e211a',
+				},
+				ocean: {
+					50: '#effaff',
+					100: '#def5ff',
+					200: '#b6ebff',
+					300: '#75dbff',
+					400: '#2ac0fb',
+					500: '#08a5e8',
+					600: '#0085c7',
+					700: '#006aa1',
+					800: '#035a85',
+					900: '#074b6f',
+					950: '#00304d',
+				},
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -84,11 +111,21 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'pulse-slow': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.8' },
+				},
+				'float': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-10px)' },
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-slow': 'pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+				'float': 'float 6s ease-in-out infinite',
 			}
 		}
 	},
