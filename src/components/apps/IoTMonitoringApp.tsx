@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Thermometer, Zap, Activity, Broadcast } from "lucide-react";
+import { Thermometer, Zap, Activity, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const IoTMonitoringApp = () => {
@@ -9,7 +9,7 @@ const IoTMonitoringApp = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">IoT Emissions Monitoring</h2>
         <Button className="bg-ocean-600 hover:bg-ocean-700">
-          <Broadcast className="mr-2 h-4 w-4" /> Connect Devices
+          <Wifi className="mr-2 h-4 w-4" /> Connect Devices
         </Button>
       </div>
       
@@ -21,7 +21,7 @@ const IoTMonitoringApp = () => {
           <CardContent>
             <div className="flex items-baseline">
               <div className="text-3xl font-bold">62</div>
-              <Broadcast className="ml-auto h-5 w-5 text-ocean-600" />
+              <Wifi className="ml-auto h-5 w-5 text-ocean-600" />
             </div>
           </CardContent>
         </Card>
