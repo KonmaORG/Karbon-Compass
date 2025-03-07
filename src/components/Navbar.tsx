@@ -19,6 +19,7 @@ const Navbar = () => {
           
           <div className="hidden md:flex items-center space-x-6">
             <a href="#features" className="text-foreground/80 hover:text-foreground transition-colors">Features</a>
+            <a href="#modules" className="text-foreground/80 hover:text-foreground transition-colors">Modules</a>
             <a href="#dashboard" className="text-foreground/80 hover:text-foreground transition-colors">Dashboard</a>
             <a href="#marketplace" className="text-foreground/80 hover:text-foreground transition-colors">Marketplace</a>
             <a href="#iot" className="text-foreground/80 hover:text-foreground transition-colors">IoT Integration</a>
@@ -43,6 +44,7 @@ const Navbar = () => {
         <div className="md:hidden bg-background border-b">
           <div className="container mx-auto px-4 py-3 space-y-2">
             <a href="#features" className="block py-2 text-foreground/80 hover:text-foreground">Features</a>
+            <a href="#modules" className="block py-2 text-foreground/80 hover:text-foreground">Modules</a>
             <a href="#dashboard" className="block py-2 text-foreground/80 hover:text-foreground">Dashboard</a>
             <a href="#marketplace" className="block py-2 text-foreground/80 hover:text-foreground">Marketplace</a>
             <a href="#iot" className="block py-2 text-foreground/80 hover:text-foreground">IoT Integration</a>
