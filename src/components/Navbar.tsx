@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Leaf } from "lucide-react";
+import { Menu, X, Leaf, LayoutDashboard } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Navbar = () => {
@@ -25,6 +25,10 @@ const Navbar = () => {
             <a href="#marketplace" className="text-foreground/80 hover:text-foreground transition-colors">Marketplace</a>
             <a href="#iot" className="text-foreground/80 hover:text-foreground transition-colors">IoT Integration</a>
             <Link to="/applications" className="text-foreground/80 hover:text-foreground transition-colors">Interfaces</Link>
+            <Link to="/dashboard" className="text-foreground/80 hover:text-foreground transition-colors flex items-center">
+              <LayoutDashboard size={18} className="mr-1" /> 
+              Dashboard
+            </Link>
             <Button variant="default" className="bg-karbon-600 hover:bg-karbon-700 text-white">
               Get Started
             </Button>
@@ -51,6 +55,10 @@ const Navbar = () => {
             <a href="#marketplace" className="block py-2 text-foreground/80 hover:text-foreground">Marketplace</a>
             <a href="#iot" className="block py-2 text-foreground/80 hover:text-foreground">IoT Integration</a>
             <Link to="/applications" className="block py-2 text-foreground/80 hover:text-foreground">Interfaces</Link>
+            <Link to="/dashboard" className="block py-2 text-foreground/80 hover:text-foreground flex items-center">
+              <LayoutDashboard size={18} className="mr-1" /> 
+              Dashboard
+            </Link>
             <Button variant="default" className="w-full bg-karbon-600 hover:bg-karbon-700 text-white mt-2">
               Get Started
             </Button>
