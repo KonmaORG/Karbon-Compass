@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Toaster } from 'sonner';
+import { useState, useEffect } from 'react';
+import { Toaster, toast } from 'sonner';
 import Sidebar from '@/components/Sidebar';
 import DashboardHeader from '@/components/DashboardHeader';
 import DashboardOverview from '@/components/DashboardOverview';
@@ -26,8 +26,29 @@ export type AppType =
   | 'crowdfunding' 
   | 'educational';
 
+const appNames: Record<AppType, string> = {
+  overview: 'Dashboard Overview',
+  registry: 'Carbon Offset Project Registry',
+  marketplace: 'Carbon Credit Marketplace',
+  footprint: 'Carbon Footprint Management',
+  iot: 'IoT Emissions Monitoring',
+  fraud: 'Fraud Detection & Prevention',
+  corporate: 'Corporate ESG Reporting',
+  governance: 'DAO Governance',
+  crowdfunding: 'Project Crowdfunding',
+  educational: 'Educational Resources'
+};
+
 const Dashboard = () => {
   const [activeApp, setActiveApp] = useState<AppType>('overview');
+  const [previousApp, setPreviousApp] = useState<AppType>('overview');
+
+  useEffect(() => {
+    if (previousApp !== activeApp) {
+      toast.success(`Switched to ${appNames[activeApp]}`);
+      setPreviousApp(activeApp);
+    }
+  }, [activeApp, previousApp]);
 
   const renderApp = () => {
     switch (activeApp) {

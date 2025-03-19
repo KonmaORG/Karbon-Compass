@@ -1,14 +1,34 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Thermometer, Zap, Activity, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import IoTModal from "./IoTModal";
 
 const IoTMonitoringApp = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState<"connect" | "details">("connect");
+  const [selectedDevice, setSelectedDevice] = useState<any>(null);
+
+  const openConnectModal = () => {
+    setModalAction("connect");
+    setIsModalOpen(true);
+  };
+
+  const openDetailsModal = (device: any) => {
+    setSelectedDevice(device);
+    setModalAction("details");
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">IoT Emissions Monitoring</h2>
-        <Button className="bg-ocean-600 hover:bg-ocean-700">
+        <Button 
+          className="bg-ocean-600 hover:bg-ocean-700"
+          onClick={openConnectModal}
+        >
           <Wifi className="mr-2 h-4 w-4" /> Connect Devices
         </Button>
       </div>
@@ -72,16 +92,27 @@ const IoTMonitoringApp = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {["Factory A", "Building B", "Solar Array", "Transport Fleet"].map((location, i) => (
-              <div key={i} className="p-4 border rounded-lg">
+            {[
+              { id: 1, name: "Factory A", location: "Building 1", type: "Industrial" },
+              { id: 2, name: "Building B", location: "Campus East", type: "Commercial" },
+              { id: 3, name: "Solar Array", location: "Field 3", type: "Energy" },
+              { id: 4, name: "Transport Fleet", location: "Depot 2", type: "Logistics" }
+            ].map((device) => (
+              <div key={device.id} className="p-4 border rounded-lg">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
                     <div className="rounded-full bg-green-100 p-2 mr-3">
                       <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
                     </div>
-                    <span className="font-medium">{location}</span>
+                    <span className="font-medium">{device.name}</span>
                   </div>
-                  <Button variant="outline" size="sm">View Details</Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => openDetailsModal(device)}
+                  >
+                    View Details
+                  </Button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded">
@@ -111,6 +142,13 @@ const IoTMonitoringApp = () => {
           </div>
         </CardContent>
       </Card>
+
+      <IoTModal 
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        action={modalAction}
+        deviceData={selectedDevice}
+      />
     </div>
   );
 };

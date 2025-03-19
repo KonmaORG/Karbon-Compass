@@ -1,14 +1,34 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, TrendingDown, Leaf, ActivitySquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import FootprintModal from "./FootprintModal";
 
 const FootprintApp = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState<"offset" | "purchase">("offset");
+  const [selectedOffset, setSelectedOffset] = useState<any>(null);
+
+  const openOffsetModal = () => {
+    setModalAction("offset");
+    setIsModalOpen(true);
+  };
+
+  const openPurchaseModal = (offset: any) => {
+    setSelectedOffset(offset);
+    setModalAction("purchase");
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Carbon Footprint Management</h2>
-        <Button className="bg-karbon-600 hover:bg-karbon-700">
+        <Button 
+          className="bg-karbon-600 hover:bg-karbon-700"
+          onClick={openOffsetModal}
+        >
           <Leaf className="mr-2 h-4 w-4" /> Offset My Emissions
         </Button>
       </div>
@@ -105,16 +125,24 @@ const FootprintApp = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+              {[
+                { id: 1, name: "Reforestation Carbon Credits", price: 12.50, location: "Brazil" },
+                { id: 2, name: "Solar Energy Carbon Credits", price: 14.00, location: "India" },
+                { id: 3, name: "Wind Energy Carbon Credits", price: 13.25, location: "Denmark" }
+              ].map((offset) => (
+                <div key={offset.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
                   <div className="rounded-full bg-ocean-100 dark:bg-ocean-800 p-2 mr-4">
                     <Leaf className="h-5 w-5 text-ocean-600" />
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium">{i % 2 === 0 ? 'Reforestation' : 'Solar Energy'} Carbon Credits</div>
-                    <div className="text-sm text-muted-foreground">${(10 + i * 2).toFixed(2)} per ton • {i % 2 === 0 ? 'Brazil' : 'India'}</div>
+                    <div className="font-medium">{offset.name}</div>
+                    <div className="text-sm text-muted-foreground">${offset.price.toFixed(2)} per ton • {offset.location}</div>
                   </div>
-                  <Button size="sm" className="bg-ocean-600 hover:bg-ocean-700">
+                  <Button 
+                    size="sm" 
+                    className="bg-ocean-600 hover:bg-ocean-700"
+                    onClick={() => openPurchaseModal(offset)}
+                  >
                     Purchase
                   </Button>
                 </div>
@@ -124,6 +152,13 @@ const FootprintApp = () => {
           </CardContent>
         </Card>
       </div>
+
+      <FootprintModal 
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        action={modalAction}
+        offsetData={selectedOffset}
+      />
     </div>
   );
 };

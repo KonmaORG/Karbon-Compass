@@ -1,14 +1,40 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, AlertTriangle, CheckCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import FraudModal from "./FraudModal";
 
 const FraudDetectionApp = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState<"scan" | "investigate" | "dismiss">("scan");
+  const [selectedAlert, setSelectedAlert] = useState<any>(null);
+
+  const openScanModal = () => {
+    setModalAction("scan");
+    setIsModalOpen(true);
+  };
+
+  const openInvestigateModal = (alert: any) => {
+    setSelectedAlert(alert);
+    setModalAction("investigate");
+    setIsModalOpen(true);
+  };
+
+  const openDismissModal = (alert: any) => {
+    setSelectedAlert(alert);
+    setModalAction("dismiss");
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Fraud Detection & Prevention</h2>
-        <Button className="bg-karbon-600 hover:bg-karbon-700">
+        <Button 
+          className="bg-karbon-600 hover:bg-karbon-700"
+          onClick={openScanModal}
+        >
           <Search className="mr-2 h-4 w-4" /> Run Manual Scan
         </Button>
       </div>
@@ -68,11 +94,11 @@ const FraudDetectionApp = () => {
         <CardContent>
           <div className="space-y-4">
             {[
-              { severity: 'high', issue: 'Potential double-counting of credits', project: 'Solar Farm Project #12' },
-              { severity: 'medium', issue: 'Unusual transaction pattern detected', project: 'Reforestation Initiative #8' },
-              { severity: 'low', issue: 'Unverified data source', project: 'Energy Efficiency Program #15' }
-            ].map((alert, i) => (
-              <div key={i} className={`p-4 border rounded-lg ${
+              { id: 1, severity: 'high', issue: 'Potential double-counting of credits', project: 'Solar Farm Project #12' },
+              { id: 2, severity: 'medium', issue: 'Unusual transaction pattern detected', project: 'Reforestation Initiative #8' },
+              { id: 3, severity: 'low', issue: 'Unverified data source', project: 'Energy Efficiency Program #15' }
+            ].map((alert) => (
+              <div key={alert.id} className={`p-4 border rounded-lg ${
                 alert.severity === 'high' ? 'border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800' :
                 alert.severity === 'medium' ? 'border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-800' :
                 'border-blue-200 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-800'
@@ -102,8 +128,20 @@ const FraudDetectionApp = () => {
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">Project: {alert.project}</div>
                     <div className="flex items-center justify-end mt-3 space-x-2">
-                      <Button size="sm" variant="outline">Dismiss</Button>
-                      <Button size="sm" className="bg-karbon-600 hover:bg-karbon-700">Investigate</Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => openDismissModal(alert)}
+                      >
+                        Dismiss
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        className="bg-karbon-600 hover:bg-karbon-700"
+                        onClick={() => openInvestigateModal(alert)}
+                      >
+                        Investigate
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -112,6 +150,13 @@ const FraudDetectionApp = () => {
           </div>
         </CardContent>
       </Card>
+
+      <FraudModal 
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        action={modalAction}
+        alertData={selectedAlert}
+      />
     </div>
   );
 };

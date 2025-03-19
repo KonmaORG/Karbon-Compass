@@ -1,14 +1,34 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BadgeDollarSign, CreditCard, Timer, ArrowUpRight, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import CrowdfundingModal from "./CrowdfundingModal";
 
 const CrowdfundingApp = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState<"submit" | "invest">("submit");
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+
+  const openSubmitModal = () => {
+    setModalAction("submit");
+    setIsModalOpen(true);
+  };
+
+  const openInvestModal = (project: any) => {
+    setSelectedProject(project);
+    setModalAction("invest");
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Project Crowdfunding</h2>
-        <Button className="bg-karbon-600 hover:bg-karbon-700">
+        <Button 
+          className="bg-karbon-600 hover:bg-karbon-700"
+          onClick={openSubmitModal}
+        >
           <FileText className="mr-2 h-4 w-4" /> Submit Project
         </Button>
       </div>
@@ -68,12 +88,12 @@ const CrowdfundingApp = () => {
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {[
-              { name: 'Amazon Rainforest Restoration', goal: 350000, raised: 182650, days: 15, location: 'Brazil', category: 'Reforestation' },
-              { name: 'Solar Microgrid Initiative', goal: 240000, raised: 156800, days: 24, location: 'Kenya', category: 'Renewable Energy' },
-              { name: 'Sustainable Agriculture Project', goal: 180000, raised: 72500, days: 9, location: 'India', category: 'Agriculture' },
-              { name: 'Mangrove Ecosystem Preservation', goal: 275000, raised: 198000, days: 12, location: 'Indonesia', category: 'Conservation' }
-            ].map((project, i) => (
-              <Card key={i} className="border overflow-hidden">
+              { id: 1, name: 'Amazon Rainforest Restoration', goal: 350000, raised: 182650, days: 15, location: 'Brazil', category: 'Reforestation' },
+              { id: 2, name: 'Solar Microgrid Initiative', goal: 240000, raised: 156800, days: 24, location: 'Kenya', category: 'Renewable Energy' },
+              { id: 3, name: 'Sustainable Agriculture Project', goal: 180000, raised: 72500, days: 9, location: 'India', category: 'Agriculture' },
+              { id: 4, name: 'Mangrove Ecosystem Preservation', goal: 275000, raised: 198000, days: 12, location: 'Indonesia', category: 'Conservation' }
+            ].map((project) => (
+              <Card key={project.id} className="border overflow-hidden">
                 <div className="h-48 bg-gradient-to-r from-karbon-100 to-ocean-100 dark:from-karbon-900 dark:to-ocean-900 flex items-center justify-center">
                   <span className="text-lg font-medium text-gray-500 dark:text-gray-400">Project Image</span>
                 </div>
@@ -109,7 +129,10 @@ const CrowdfundingApp = () => {
                       <div className="text-sm text-muted-foreground">
                         {Math.round((project.raised / project.goal) * 100)}% funded
                       </div>
-                      <Button className="bg-ocean-600 hover:bg-ocean-700">
+                      <Button 
+                        className="bg-ocean-600 hover:bg-ocean-700"
+                        onClick={() => openInvestModal(project)}
+                      >
                         Invest Now
                       </Button>
                     </div>
@@ -120,6 +143,13 @@ const CrowdfundingApp = () => {
           </div>
         </CardContent>
       </Card>
+
+      <CrowdfundingModal 
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        action={modalAction}
+        projectData={selectedProject}
+      />
     </div>
   );
 };

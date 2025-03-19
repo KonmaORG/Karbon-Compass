@@ -1,15 +1,35 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingBag, TrendingUp, ArrowUpRight, CreditCard, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import MarketplaceModal from "./MarketplaceModal";
 
 const MarketplaceApp = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState<"buy" | "portfolio">("buy");
+  const [selectedCredit, setSelectedCredit] = useState<any>(null);
+
+  const openBuyModal = (credit: any) => {
+    setSelectedCredit(credit);
+    setModalAction("buy");
+    setIsModalOpen(true);
+  };
+
+  const openPortfolioModal = () => {
+    setModalAction("portfolio");
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Carbon Credit Marketplace</h2>
-        <Button className="bg-ocean-600 hover:bg-ocean-700">
+        <Button 
+          className="bg-ocean-600 hover:bg-ocean-700"
+          onClick={openPortfolioModal}
+        >
           <CreditCard className="mr-2 h-4 w-4" /> My Portfolio
         </Button>
       </div>
@@ -68,14 +88,21 @@ const MarketplaceApp = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+            {[
+              { id: 1, name: "Reforestation Project #1", price: 10.50, location: "Brazil", type: "Reforestation" },
+              { id: 2, name: "Solar Energy Project #1", price: 11.25, location: "India", type: "Renewable Energy" },
+              { id: 3, name: "Reforestation Project #2", price: 12.00, location: "Brazil", type: "Reforestation" },
+              { id: 4, name: "Solar Energy Project #2", price: 12.75, location: "India", type: "Renewable Energy" },
+              { id: 5, name: "Reforestation Project #3", price: 13.50, location: "Brazil", type: "Reforestation" },
+              { id: 6, name: "Solar Energy Project #3", price: 14.25, location: "India", type: "Renewable Energy" }
+            ].map((credit) => (
+              <Card key={credit.id} className="border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-base">{i % 2 === 0 ? 'Reforestation' : 'Solar Energy'} Project #{i}</CardTitle>
+                      <CardTitle className="text-base">{credit.name}</CardTitle>
                       <CardDescription className="text-xs">
-                        {i % 2 === 0 ? 'Brazil' : 'India'} • Verified by {i % 3 === 0 ? 'Gold Standard' : 'Verra'}
+                        {credit.location} • Verified by {credit.id % 3 === 0 ? 'Gold Standard' : 'Verra'}
                       </CardDescription>
                     </div>
                     <div className="rounded-full bg-ocean-100 dark:bg-ocean-800 p-1">
@@ -87,9 +114,13 @@ const MarketplaceApp = () => {
                   <div className="flex justify-between items-end mt-2">
                     <div>
                       <div className="text-sm text-muted-foreground">Price</div>
-                      <div className="text-lg font-bold">${(10 + i * 0.5).toFixed(2)}</div>
+                      <div className="text-lg font-bold">${credit.price.toFixed(2)}</div>
                     </div>
-                    <Button size="sm" className="bg-ocean-600 hover:bg-ocean-700">
+                    <Button 
+                      size="sm" 
+                      className="bg-ocean-600 hover:bg-ocean-700"
+                      onClick={() => openBuyModal(credit)}
+                    >
                       Buy Now
                     </Button>
                   </div>
@@ -99,6 +130,13 @@ const MarketplaceApp = () => {
           </div>
         </CardContent>
       </Card>
+
+      <MarketplaceModal 
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        action={modalAction}
+        creditData={selectedCredit}
+      />
     </div>
   );
 };
