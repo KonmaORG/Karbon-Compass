@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, User, Settings, Wallet } from 'lucide-react';
+import { Bell, User, Settings, Wallet, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -14,12 +13,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DashboardHeaderProps {
   activeApp: AppType;
 }
 
-type WalletType = 'MetaMask' | 'WalletConnect' | 'Coinbase' | null;
+type BlockchainNetwork = 'ethereum' | 'cardano';
+type EthereumWalletType = 'MetaMask' | 'WalletConnect' | null;
+type CardanoWalletType = 'Yoroi' | 'Lace' | null;
+type WalletType = EthereumWalletType | CardanoWalletType | null;
 type UserRole = 'admin' | 'verifier' | 'user' | null;
 
 const getAppTitle = (activeApp: AppType): string => {
@@ -44,21 +53,25 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
   const [walletType, setWalletType] = useState<WalletType>(null);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [selectedNetwork, setSelectedNetwork] = useState<BlockchainNetwork>('ethereum');
 
   const connectWallet = async (type: WalletType) => {
     setIsConnecting(true);
     
     try {
-      // Simulate wallet connection
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Mock wallet address and role assignment based on wallet type
-      const mockAddress = `0x${Math.random().toString(16).slice(2, 12)}...${Math.random().toString(16).slice(2, 6)}`;
+      let mockAddress;
+      if (selectedNetwork === 'ethereum') {
+        mockAddress = `0x${Math.random().toString(16).slice(2, 12)}...${Math.random().toString(16).slice(2, 6)}`;
+      } else {
+        mockAddress = `addr1${Math.random().toString(16).slice(2, 12)}...${Math.random().toString(16).slice(2, 6)}`;
+      }
+      
       setWalletAddress(mockAddress);
       setWalletType(type);
       setIsConnected(true);
       
-      // Assign a role based on the mock address (this would be replaced with actual RBAC logic)
       const roleAssignment: {[key: string]: UserRole} = {
         '0': 'admin',
         '1': 'verifier',
@@ -72,10 +85,10 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
         '9': 'verifier',
       };
       
-      const assignedRole = roleAssignment[mockAddress[2]] || 'user';
+      const assignedRole = roleAssignment[mockAddress[selectedNetwork === 'ethereum' ? 2 : 5]] || 'user';
       setUserRole(assignedRole);
       
-      toast.success(`Wallet connected: ${type}`, {
+      toast.success(`Wallet connected: ${type} on ${selectedNetwork.charAt(0).toUpperCase() + selectedNetwork.slice(1)}`, {
         description: `Role assigned: ${assignedRole.charAt(0).toUpperCase() + assignedRole.slice(1)}`
       });
     } catch (error) {
@@ -94,6 +107,14 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
     toast.info('Wallet disconnected');
   };
 
+  const handleNetworkChange = (network: BlockchainNetwork) => {
+    if (isConnected) {
+      disconnectWallet();
+      toast.info(`Switched to ${network.charAt(0).toUpperCase() + network.slice(1)} network`);
+    }
+    setSelectedNetwork(network);
+  };
+
   const getRoleBadgeColor = (role: UserRole) => {
     switch (role) {
       case 'admin':
@@ -104,6 +125,36 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+    }
+  };
+
+  const getNetworkDisplayName = (network: BlockchainNetwork): string => {
+    return network.charAt(0).toUpperCase() + network.slice(1);
+  };
+
+  const getNetworkWallets = () => {
+    if (selectedNetwork === 'ethereum') {
+      return (
+        <>
+          <DropdownMenuItem disabled={isConnecting} onClick={() => connectWallet('MetaMask')}>
+            MetaMask
+          </DropdownMenuItem>
+          <DropdownMenuItem disabled={isConnecting} onClick={() => connectWallet('WalletConnect')}>
+            WalletConnect
+          </DropdownMenuItem>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <DropdownMenuItem disabled={isConnecting} onClick={() => connectWallet('Yoroi')}>
+            Yoroi
+          </DropdownMenuItem>
+          <DropdownMenuItem disabled={isConnecting} onClick={() => connectWallet('Lace')}>
+            Lace
+          </DropdownMenuItem>
+        </>
+      );
     }
   };
 
@@ -128,6 +179,22 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
             />
           </div>
           
+          <Select
+            value={selectedNetwork}
+            onValueChange={(value) => handleNetworkChange(value as BlockchainNetwork)}
+          >
+            <SelectTrigger className="w-[130px]">
+              <div className="flex items-center gap-2">
+                <Globe size={16} />
+                <SelectValue placeholder="Select Network" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ethereum">Ethereum</SelectItem>
+              <SelectItem value="cardano">Cardano</SelectItem>
+            </SelectContent>
+          </Select>
+          
           {isConnected ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -146,6 +213,9 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
                 <DropdownMenuLabel>Wallet Type</DropdownMenuLabel>
                 <DropdownMenuItem className="text-xs">{walletType}</DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuLabel>Network</DropdownMenuLabel>
+                <DropdownMenuItem className="text-xs capitalize">{getNetworkDisplayName(selectedNetwork)}</DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuLabel>Role</DropdownMenuLabel>
                 <DropdownMenuItem className="text-xs capitalize">{userRole}</DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -161,15 +231,8 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem disabled={isConnecting} onClick={() => connectWallet('MetaMask')}>
-                  MetaMask
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled={isConnecting} onClick={() => connectWallet('WalletConnect')}>
-                  WalletConnect
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled={isConnecting} onClick={() => connectWallet('Coinbase')}>
-                  Coinbase Wallet
-                </DropdownMenuItem>
+                <DropdownMenuLabel className="capitalize">{getNetworkDisplayName(selectedNetwork)} Wallets</DropdownMenuLabel>
+                {getNetworkWallets()}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
