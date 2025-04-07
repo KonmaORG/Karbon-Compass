@@ -190,7 +190,10 @@ const RegistryApp = () => {
                        project.location.toLowerCase().includes(searchQuery.toLowerCase()))
     .filter(project => !filterType || filterType === "all-types" || project.type === filterType)
     .filter(project => !filterLocation || filterLocation === "all-locations" || project.location === filterLocation)
-    .filter(project => !filterStatus || filterStatus === "all-statuses" || project.verificationStatus === filterStatus);
+    .filter(project => {
+      if (!filterStatus || filterStatus === "all-statuses") return true;
+      return project.verificationStatus === filterStatus;
+    });
 
   const projectTypes = Array.from(new Set(projects.map(p => p.type)));
   const projectLocations = Array.from(new Set(projects.map(p => p.location)));
@@ -390,7 +393,16 @@ const RegistryApp = () => {
             
             <div className="grid gap-2">
               <label htmlFor="status" className="text-sm font-medium">Verification Status</label>
-              <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as VerificationStatus || undefined)}>
+              <Select 
+                value={filterStatus} 
+                onValueChange={(value) => {
+                  if (value === "all-statuses") {
+                    setFilterStatus(undefined);
+                  } else {
+                    setFilterStatus(value as VerificationStatus);
+                  }
+                }}
+              >
                 <SelectTrigger id="status">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
@@ -407,9 +419,9 @@ const RegistryApp = () => {
           
           <DialogFooter>
             <Button variant="outline" onClick={() => {
-              setFilterType("all-types");
-              setFilterLocation("all-locations");
-              setFilterStatus("all-statuses" as any);
+              setFilterType(undefined);
+              setFilterLocation(undefined);
+              setFilterStatus(undefined);
             }}>
               Reset
             </Button>
@@ -486,7 +498,7 @@ const RegistryApp = () => {
                           variant="outline" 
                           className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
                           onClick={() => {
-                            setSelectedProject(project);
+                            setSelectedProject(selectedProject);
                             setIsVerificationDialogOpen(false);
                           }}
                         >
