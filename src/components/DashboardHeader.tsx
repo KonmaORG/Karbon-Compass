@@ -4,7 +4,6 @@ import { Bell, User, Settings, Wallet, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { AppType } from "@/component_pages/Dashboard";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AppType } from "@/component_pages/Dashboard";
 
 interface DashboardHeaderProps {
   activeApp: AppType;
