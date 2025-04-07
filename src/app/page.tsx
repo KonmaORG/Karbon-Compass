@@ -1,7 +1,7 @@
 "use client";
 
-import App from "./App";
+import Index from "@/component_pages/Index";
 
 export default function Page() {
-  return <App />;
+  return <Index />;
 }
