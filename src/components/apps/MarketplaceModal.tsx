@@ -1,201 +1,371 @@
-
-import { useState } from "react";
-import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard, ShoppingCart, Wallet } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
-type MarketplaceModalProps = {
+interface CrowdfundingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  action: "buy" | "portfolio";
-  creditData?: {
-    name: string;
-    price: number;
-    location: string;
-    type: string;
-  };
-};
+  action: "submit" | "invest";
+  projectData?: any;
+  onProjectSubmit?: (data: any) => void;
+}
 
-const MarketplaceModal = ({ open, onOpenChange, action, creditData }: MarketplaceModalProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const handlePurchase = () => {
-    setIsLoading(true);
-    
-    // Simulate API call
+// Schema for project submission
+const projectFormSchema = z.object({
+  name: z.string().min(3, "Project name must be at least 3 characters"),
+  description: z.string().min(20, "Please provide a more detailed description"),
+  category: z.string().min(1, "Please select a category"),
+  location: z.string().min(1, "Please provide a location"),
+  fundingGoal: z
+    .string()
+    .refine(
+      (val) => !isNaN(Number(val)) && Number(val) > 0,
+      "Please enter a valid funding goal"
+    ),
+});
+
+// Schema for investment
+const investFormSchema = z.object({
+  amount: z
+    .string()
+    .refine(
+      (val) => !isNaN(Number(val)) && Number(val) > 0,
+      "Please enter a valid amount"
+    ),
+});
+
+const CrowdfundingModal = ({
+  open,
+  onOpenChange,
+  action,
+  projectData,
+  onProjectSubmit,
+}: CrowdfundingModalProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const projectForm = useForm<z.infer<typeof projectFormSchema>>({
+    resolver: zodResolver(projectFormSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      category: "",
+      location: "",
+      fundingGoal: "",
+    },
+  });
+
+  const investForm = useForm<z.infer<typeof investFormSchema>>({
+    resolver: zodResolver(investFormSchema),
+    defaultValues: {
+      amount: "",
+    },
+  });
+
+  // Handle project submission
+  const handleProjectSubmit = (data: z.infer<typeof projectFormSchema>) => {
+    setIsSubmitting(true);
+
     setTimeout(() => {
-      setIsLoading(false);
+      if (onProjectSubmit) {
+        onProjectSubmit(data);
+      }
+      setIsSubmitting(false);
       onOpenChange(false);
-      toast.success(`${action === "buy" ? "Purchase successful!" : "Portfolio updated!"}`);
-    }, 1500);
+      projectForm.reset();
+    }, 1000);
   };
-  
+
+  // Handle investment submission
+  const handleInvestSubmit = (data: z.infer<typeof investFormSchema>) => {
+    setIsSubmitting(true);
+
+    setTimeout(() => {
+      console.log("Investment submitted:", {
+        project: projectData?.name,
+        amount: data.amount,
+      });
+      setIsSubmitting(false);
+      onOpenChange(false);
+      investForm.reset();
+    }, 1000);
+  };
+
+  // Calculate suggested amounts based on project goal
+  const getSuggestedAmounts = () => {
+    if (!projectData) return [10, 50, 100];
+
+    const goal = projectData.goal;
+    return [
+      Math.round(goal * 0.01),
+      Math.round(goal * 0.05),
+      Math.round(goal * 0.1),
+    ];
+  };
+
+  const suggestedAmounts = getSuggestedAmounts();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>
-            {action === "buy" ? (
-              <div className="flex items-center">
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Purchase Carbon Credits
-              </div>
-            ) : (
-              <div className="flex items-center">
-                <Wallet className="mr-2 h-5 w-5" />
-                Your Credit Portfolio
-              </div>
-            )}
-          </DialogTitle>
-          <DialogDescription>
-            {action === "buy" 
-              ? "Review and confirm your carbon credit purchase"
-              : "Manage your carbon credit portfolio"
-            }
-          </DialogDescription>
-        </DialogHeader>
-        
-        {action === "buy" && creditData ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Credit Type</p>
-                <p>{creditData.name}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Price</p>
-                <p>${creditData.price.toFixed(2)} per credit</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Location</p>
-                <p>{creditData.location}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Project Type</p>
-                <p>{creditData.type}</p>
-              </div>
-            </div>
-            
-            <div className="border rounded-md p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Quantity</span>
-                <span>10 credits</span>
-              </div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Price per credit</span>
-                <span>${creditData.price.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Subtotal</span>
-                <span>${(creditData.price * 10).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Processing fee</span>
-                <span>${(creditData.price * 0.03).toFixed(2)}</span>
-              </div>
-              <div className="border-t pt-2 flex justify-between items-center font-bold">
-                <span>Total</span>
-                <span>${(creditData.price * 10 + creditData.price * 0.03).toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        ) : action === "portfolio" ? (
-          <Tabs defaultValue="owned">
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="owned">Owned</TabsTrigger>
-              <TabsTrigger value="retired">Retired</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
-            </TabsList>
-            <TabsContent value="owned">
-              <div className="space-y-3">
-                {[
-                  { name: "Reforestation Project #1", quantity: 10, price: 12.35 },
-                  { name: "Solar Energy Project #2", quantity: 5, price: 11.50 },
-                  { name: "Wind Energy Project #3", quantity: 15, price: 10.25 },
-                ].map((credit, i) => (
-                  <Card key={i}>
-                    <CardHeader className="p-3">
-                      <CardTitle className="text-sm">{credit.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0">
-                      <div className="flex justify-between items-center text-sm">
-                        <span>{credit.quantity} credits</span>
-                        <span>${(credit.quantity * credit.price).toFixed(2)} value</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-            <TabsContent value="retired">
-              <div className="space-y-3">
-                {[
-                  { name: "Reforestation Project #4", quantity: 2, date: "2023-12-10" },
-                ].map((credit, i) => (
-                  <Card key={i}>
-                    <CardHeader className="p-3">
-                      <CardTitle className="text-sm">{credit.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0">
-                      <div className="flex justify-between items-center text-sm">
-                        <span>{credit.quantity} credits</span>
-                        <span>Retired on {credit.date}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-            <TabsContent value="history">
-              <div className="space-y-3">
-                {[
-                  { type: "Purchase", project: "Solar Energy Project #2", amount: 5, date: "2023-12-15" },
-                  { type: "Retirement", project: "Reforestation Project #4", amount: 2, date: "2023-12-10" },
-                  { type: "Purchase", project: "Reforestation Project #1", amount: 10, date: "2023-11-28" },
-                ].map((transaction, i) => (
-                  <div key={i} className="flex justify-between items-center p-2 border-b text-sm">
-                    <div>
-                      <div className="font-medium">{transaction.type}</div>
-                      <div className="text-muted-foreground">{transaction.project}</div>
-                    </div>
-                    <div className="text-right">
-                      <div>{transaction.amount} credits</div>
-                      <div className="text-muted-foreground">{transaction.date}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        ) : null}
-        
-        <DialogFooter>
-          {action === "buy" ? (
-            <>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button 
-                className="bg-ocean-600 hover:bg-ocean-700"
-                onClick={handlePurchase}
-                isLoading={isLoading}
+        {action === "submit" ? (
+          // Submit Project Form
+          <>
+            <DialogHeader>
+              <DialogTitle>Submit a Carbon Project</DialogTitle>
+              <DialogDescription>
+                Submit your carbon offset project for verification and
+                fundraising
+              </DialogDescription>
+            </DialogHeader>
+
+            <Form {...projectForm}>
+              <form
+                onSubmit={projectForm.handleSubmit(handleProjectSubmit)}
+                className="space-y-4 pt-4"
               >
-                <CreditCard className="mr-2 h-4 w-4" />
-                Complete Purchase
-              </Button>
-            </>
-          ) : (
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
-          )}
-        </DialogFooter>
+                <FormField
+                  control={projectForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter project name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={projectForm.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Reforestation">
+                              Reforestation
+                            </SelectItem>
+                            <SelectItem value="Renewable Energy">
+                              Renewable Energy
+                            </SelectItem>
+                            <SelectItem value="Agriculture">
+                              Sustainable Agriculture
+                            </SelectItem>
+                            <SelectItem value="Conservation">
+                              Conservation
+                            </SelectItem>
+                            <SelectItem value="Emissions Reduction">
+                              Emissions Reduction
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={projectForm.control}
+                    name="location"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Location</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Country or region" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={projectForm.control}
+                  name="fundingGoal"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Funding Goal (USD)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. 100000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={projectForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Describe your carbon offset project in detail"
+                          className="min-h-[120px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-karbon-600 hover:bg-karbon-700"
+                    isLoading={isSubmitting}
+                  >
+                    Submit for Verification
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </>
+        ) : (
+          // Invest in Project Form
+          <>
+            <DialogHeader>
+              <DialogTitle>Invest in {projectData?.name}</DialogTitle>
+              <DialogDescription>
+                Support this carbon offset project by investing funds
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="pt-4 space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Project</p>
+                    <p className="font-medium">{projectData?.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Location</p>
+                    <p className="font-medium">{projectData?.location}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Goal</p>
+                    <p className="font-medium">
+                      ${projectData?.goal.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Funded</p>
+                    <p className="font-medium">
+                      {Math.round(
+                        (projectData?.raised / projectData?.goal) * 100
+                      )}
+                      %
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Form {...investForm}>
+                <form
+                  onSubmit={investForm.handleSubmit(handleInvestSubmit)}
+                  className="space-y-6"
+                >
+                  <FormField
+                    control={investForm.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Investment Amount (USD)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter amount" {...field} />
+                        </FormControl>
+                        <div className="flex gap-2 mt-2">
+                          {suggestedAmounts.map((amount, i) => (
+                            <Button
+                              key={i}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                investForm.setValue("amount", amount.toString())
+                              }
+                            >
+                              ${amount.toLocaleString()}
+                            </Button>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="bg-ocean-600 hover:bg-ocean-700"
+                      isLoading={isSubmitting}
+                    >
+                      Complete Investment
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
 };
 
-export default MarketplaceModal;
+export default CrowdfundingModal;
