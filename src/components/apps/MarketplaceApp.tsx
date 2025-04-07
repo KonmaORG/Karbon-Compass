@@ -15,6 +15,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CrowdfundingModal from "./CrowdfundingModal";
@@ -30,7 +31,7 @@ import {
 import { toast } from "sonner";
 
 // Project verification status type
-type VerificationStatus = "pending" | "approved" | "rejected";
+type VerificationStatus = "pending" | "approved" | "rejected" | "canceled";
 
 // Project type definition
 type Project = {
@@ -44,14 +45,20 @@ type Project = {
   description?: string;
   verificationStatus: VerificationStatus;
   submittedAt: Date;
+  createdBy?: string; // Added to track project creator
 };
 
 const CrowdfundingApp = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState<"submit" | "invest">("submit");
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | undefined>();
   const [isVerificationDialogOpen, setIsVerificationDialogOpen] =
     useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [projectToCancel, setProjectToCancel] = useState<Project | null>(null);
+
+  // Mock current user ID (in a real app, this would come from authentication)
+  const currentUserId = "user123";
 
   // All projects, including those pending verification
   const [projects, setProjects] = useState<Project[]>([
@@ -67,6 +74,7 @@ const CrowdfundingApp = () => {
         "Large-scale reforestation project in the Amazon rainforest to restore degraded land and protect biodiversity.",
       verificationStatus: "approved",
       submittedAt: new Date(2024, 2, 15),
+      createdBy: "user123",
     },
     {
       id: 2,
@@ -80,6 +88,7 @@ const CrowdfundingApp = () => {
         "Building solar microgrids to provide clean energy access to rural communities in Kenya.",
       verificationStatus: "approved",
       submittedAt: new Date(2024, 2, 5),
+      createdBy: "user456",
     },
     {
       id: 3,
@@ -93,6 +102,7 @@ const CrowdfundingApp = () => {
         "Implementing sustainable farming practices to reduce carbon emissions and improve soil health.",
       verificationStatus: "approved",
       submittedAt: new Date(2024, 1, 28),
+      createdBy: "user789",
     },
     {
       id: 4,
@@ -106,6 +116,7 @@ const CrowdfundingApp = () => {
         "Protecting and restoring mangrove ecosystems to sequester carbon and protect coastal communities.",
       verificationStatus: "approved",
       submittedAt: new Date(2024, 1, 20),
+      createdBy: "user123",
     },
     {
       id: 5,
@@ -119,6 +130,7 @@ const CrowdfundingApp = () => {
         "Creating carbon-absorbing green spaces in urban environments to combat heat islands and improve air quality.",
       verificationStatus: "pending",
       submittedAt: new Date(2024, 3, 2),
+      createdBy: "user456",
     },
     {
       id: 6,
@@ -132,6 +144,7 @@ const CrowdfundingApp = () => {
         "Implementing technology to capture methane emissions from landfills and convert them to usable energy.",
       verificationStatus: "pending",
       submittedAt: new Date(2024, 3, 5),
+      createdBy: "user123",
     },
   ]);
 
@@ -176,6 +189,7 @@ const CrowdfundingApp = () => {
       description: projectData.description,
       verificationStatus: "pending",
       submittedAt: new Date(),
+      createdBy: currentUserId, // Associate project with current user
     };
 
     setProjects([...projects, newProject]);
@@ -198,8 +212,26 @@ const CrowdfundingApp = () => {
       })
     );
 
-    const statusText = status === "approved" ? "approved" : "rejected";
+    const statusText =
+      status === "approved"
+        ? "approved"
+        : status === "rejected"
+        ? "rejected"
+        : "canceled";
     toast.success(`Project ${statusText} successfully`);
+  };
+
+  const openCancelDialog = (project: Project) => {
+    setProjectToCancel(project);
+    setIsCancelDialogOpen(true);
+  };
+
+  const handleCancelProject = () => {
+    if (projectToCancel) {
+      updateProjectStatus(projectToCancel.id, "canceled");
+      setIsCancelDialogOpen(false);
+      setProjectToCancel(null);
+    }
   };
 
   const getVerificationBadge = (status: VerificationStatus) => {
@@ -222,9 +254,20 @@ const CrowdfundingApp = () => {
             <XCircle className="h-3 w-3" /> Rejected
           </Badge>
         );
+      case "canceled":
+        return (
+          <Badge variant="canceled" className="flex items-center gap-1">
+            <Ban className="h-3 w-3" /> Canceled
+          </Badge>
+        );
       default:
         return null;
     }
+  };
+
+  // Check if the current user is the creator of a project
+  const isProjectOwner = (project: Project) => {
+    return project.createdBy === currentUserId;
   };
 
   return (
@@ -368,12 +411,23 @@ const CrowdfundingApp = () => {
                         {Math.round((project.raised / project.goal) * 100)}%
                         funded
                       </div>
-                      <Button
-                        className="bg-ocean-600 hover:bg-ocean-700"
-                        onClick={() => openInvestModal(project)}
-                      >
-                        Invest Now
-                      </Button>
+                      <div className="flex gap-2">
+                        {isProjectOwner(project) && (
+                          <Button
+                            variant="outline"
+                            className="border-red-200 text-red-600 hover:bg-red-50"
+                            onClick={() => openCancelDialog(project)}
+                          >
+                            Cancel Project
+                          </Button>
+                        )}
+                        <Button
+                          className="bg-ocean-600 hover:bg-ocean-700"
+                          onClick={() => openInvestModal(project)}
+                        >
+                          Invest Now
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -490,6 +544,89 @@ const CrowdfundingApp = () => {
               onClick={() => setIsVerificationDialogOpen(false)}
             >
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Project Cancellation Confirmation Dialog */}
+      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Cancel Project</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this project? This action cannot
+              be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {projectToCancel && (
+            <div className="py-4 space-y-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">
+                    {projectToCancel.name}
+                  </CardTitle>
+                  <CardDescription>
+                    {projectToCancel.location} • {projectToCancel.category}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Current Funding
+                      </p>
+                      <p className="font-medium">
+                        ${projectToCancel.raised.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Goal</p>
+                      <p className="font-medium">
+                        ${projectToCancel.goal.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-800">
+                      Important Notice
+                    </p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Canceling this project will:
+                    </p>
+                    <ul className="text-sm text-amber-700 mt-1 list-disc pl-5">
+                      <li>
+                        Mark the project as canceled and remove it from active
+                        listings
+                      </li>
+                      <li>
+                        Return all invested funds to the investors (in a real
+                        application)
+                      </li>
+                      <li>Send notifications to all stakeholders</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={() => setIsCancelDialogOpen(false)}
+            >
+              Keep Project Active
+            </Button>
+            <Button variant="destructive" onClick={handleCancelProject}>
+              <Ban className="mr-2 h-4 w-4" /> Cancel Project
             </Button>
           </DialogFooter>
         </DialogContent>
