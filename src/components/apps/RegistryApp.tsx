@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClipboardCheck, FileCheck, PlusCircle, Filter, Search, X, FileText, Download } from "lucide-react";
@@ -324,7 +323,6 @@ const RegistryApp = () => {
         onProjectRegistered={handleRegistration}
       />
 
-      {/* Filter Dialog */}
       <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -342,7 +340,7 @@ const RegistryApp = () => {
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All types</SelectItem>
+                  <SelectItem value="all-types">All types</SelectItem>
                   {projectTypes.map((type) => (
                     <SelectItem key={type} value={type} className="capitalize">{type.replace('-', ' ')}</SelectItem>
                   ))}
@@ -357,7 +355,7 @@ const RegistryApp = () => {
                   <SelectValue placeholder="All locations" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All locations</SelectItem>
+                  <SelectItem value="all-locations">All locations</SelectItem>
                   {projectLocations.map((location) => (
                     <SelectItem key={location} value={location}>{location}</SelectItem>
                   ))}
@@ -372,7 +370,7 @@ const RegistryApp = () => {
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all-statuses">All statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in_review">In Review</SelectItem>
                   <SelectItem value="verified">Verified</SelectItem>
@@ -384,9 +382,9 @@ const RegistryApp = () => {
           
           <DialogFooter>
             <Button variant="outline" onClick={() => {
-              setFilterType(undefined);
-              setFilterLocation(undefined);
-              setFilterStatus(undefined);
+              setFilterType("all-types");
+              setFilterLocation("all-locations");
+              setFilterStatus("all-statuses" as any);
             }}>
               Reset
             </Button>
@@ -395,7 +393,6 @@ const RegistryApp = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Project Details Dialog */}
       <Dialog open={!!selectedProject} onOpenChange={(open) => !open && setSelectedProject(null)}>
         <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
           {selectedProject && (
