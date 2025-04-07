@@ -7,7 +7,7 @@ import Index from "../component_pages/Index";
 import Applications from "../component_pages/Applications";
 import Dashboard from "../component_pages/Dashboard";
 import Modules from "../component_pages/Modules";
-import NotFound from "../component_pages/NotFound";
+// import NotFound from "./not-found";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +23,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/modules" element={<Modules />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+          {/* <Route path="*" element={<NotFound />} /> */}
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
