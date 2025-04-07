@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppType } from "@/component_pages/Dashboard";
+import Link from "next/link";
 
 interface SidebarProps {
   activeApp: AppType;
@@ -118,7 +118,7 @@ const Sidebar = ({ activeApp, setActiveApp }: SidebarProps) => {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         {!collapsed && (
-          <Link to="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2">
             <Leaf className="h-6 w-6 text-karbon-600" />
             <span className="text-lg font-bold text-foreground">
               KarbonLedger

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Bell, User, Settings, Wallet, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AppType } from "@/component_pages/Dashboard";
+import Link from "next/link";
 
 interface DashboardHeaderProps {
   activeApp: AppType;
@@ -311,7 +311,7 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
               <User size={20} />
             </Button>
             <div className="hidden md:block">
-              <Link to="/" className="text-sm font-medium">
+              <Link href="/" className="text-sm font-medium">
                 Back to Homepage
               </Link>
             </div>

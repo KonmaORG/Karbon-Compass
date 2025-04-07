@@ -1,4 +1,4 @@
-
+"use client";
 import { useState } from "react";
 import {
   Card,
@@ -252,16 +252,27 @@ const ModulesFeatures = () => {
   ];
 
   return (
-    <div id="modules" className="py-20 bg-gradient-to-b from-background to-karbon-50/50 dark:to-karbon-950/50">
+    <div
+      id="modules"
+      className="py-20 bg-gradient-to-b from-background to-karbon-50/50 dark:to-karbon-950/50"
+    >
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Platform Modules & Features</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Platform Modules & Features
+          </h2>
           <p className="text-lg text-foreground/70 max-w-2xl mx-auto">
-            KarbonLedger's comprehensive set of modules provides everything needed for transparent and efficient carbon management.
+            KarbonLedger's comprehensive set of modules provides everything
+            needed for transparent and efficient carbon management.
           </p>
         </div>
 
-        <Tabs defaultValue="tokenization" value={selectedModule} onValueChange={setSelectedModule} className="w-full">
+        <Tabs
+          defaultValue="tokenization"
+          value={selectedModule}
+          onValueChange={setSelectedModule}
+          className="w-full"
+        >
           <div className="overflow-x-auto pb-4">
             <TabsList className="inline-flex w-auto h-auto p-1 mb-8">
               {modules.map((module) => (
@@ -278,7 +289,11 @@ const ModulesFeatures = () => {
           </div>
 
           {modules.map((module) => (
-            <TabsContent key={module.id} value={module.id} className="space-y-6">
+            <TabsContent
+              key={module.id}
+              value={module.id}
+              className="space-y-6"
+            >
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-1">
                   <CardHeader>
@@ -307,8 +322,12 @@ const ModulesFeatures = () => {
                           key={index}
                           className="p-4 border border-karbon-100 dark:border-karbon-800 rounded-lg hover:shadow-md transition-shadow"
                         >
-                          <h4 className="font-semibold mb-2">{feature.title}</h4>
-                          <p className="text-foreground/80 text-sm">{feature.description}</p>
+                          <h4 className="font-semibold mb-2">
+                            {feature.title}
+                          </h4>
+                          <p className="text-foreground/80 text-sm">
+                            {feature.description}
+                          </p>
                         </div>
                       ))}
                     </div>
