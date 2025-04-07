@@ -1,12 +1,24 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { X, FileCheck, Upload, Paperclip } from "lucide-react";
 import { ProjectDocument } from "./RegistryApp";
 
@@ -16,36 +28,40 @@ type ProjectFormValues = {
   type: string;
   estimatedCredits: string;
   description: string;
-}
+};
 
 const initialFormValues: ProjectFormValues = {
   name: "",
   location: "",
   type: "reforestation",
   estimatedCredits: "",
-  description: ""
-}
+  description: "",
+};
 
 interface ProjectRegistrationFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onProjectRegistered?: (project: ProjectFormValues, documents: ProjectDocument[]) => void;
+  onProjectRegistered?: (
+    project: ProjectFormValues,
+    documents: ProjectDocument[]
+  ) => void;
 }
 
-const ProjectRegistrationForm = ({ 
-  open, 
+const ProjectRegistrationForm = ({
+  open,
   onOpenChange,
-  onProjectRegistered 
+  onProjectRegistered,
 }: ProjectRegistrationFormProps) => {
-  const [formValues, setFormValues] = useState<ProjectFormValues>(initialFormValues);
+  const [formValues, setFormValues] =
+    useState<ProjectFormValues>(initialFormValues);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [dragActive, setDragActive] = useState(false);
 
   const handleChange = (field: keyof ProjectFormValues, value: string) => {
-    setFormValues(prev => ({
+    setFormValues((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -63,7 +79,7 @@ const ProjectRegistrationForm = ({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFiles(e.dataTransfer.files);
     }
@@ -77,49 +93,50 @@ const ProjectRegistrationForm = ({
 
   const handleFiles = (files: FileList) => {
     // Convert FileList to array and process
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file) => {
       // In a real app, you would upload files to a server here
       const newDocument: ProjectDocument = {
         id: Date.now() + Math.floor(Math.random() * 1000),
         name: file.name,
         type: file.type,
         url: URL.createObjectURL(file), // Create a temporary URL for preview
-        uploadedAt: new Date()
+        uploadedAt: new Date(),
       };
-      
-      setDocuments(prevDocs => [...prevDocs, newDocument]);
+
+      setDocuments((prevDocs) => [...prevDocs, newDocument]);
       toast.success(`File ${file.name} added`);
     });
   };
 
   const removeDocument = (docId: number) => {
-    setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== docId));
+    setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Handle success
       if (onProjectRegistered) {
         onProjectRegistered(formValues, documents);
       }
-      
+
       toast.success("Project successfully registered", {
-        description: `${formValues.name} has been registered and is pending verification.`
+        description: `${formValues.name} has been registered and is pending verification.`,
       });
-      
+
       // Reset form and close dialog
       setFormValues(initialFormValues);
       setDocuments([]);
       onOpenChange(false);
     } catch (error) {
       toast.error("Failed to register project", {
-        description: "There was an error registering your project. Please try again."
+        description:
+          "There was an error registering your project. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
@@ -132,41 +149,41 @@ const ProjectRegistrationForm = ({
         <DialogHeader>
           <DialogTitle>Register New Carbon Offset Project</DialogTitle>
           <DialogDescription>
-            Fill out the details below to register a new carbon offset project. 
+            Fill out the details below to register a new carbon offset project.
             All projects undergo verification before credits can be issued.
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Project Name</Label>
-              <Input 
-                id="name" 
-                value={formValues.name} 
+              <Input
+                id="name"
+                value={formValues.name}
                 onChange={(e) => handleChange("name", e.target.value)}
-                placeholder="e.g., Amazon Reforestation Initiative" 
+                placeholder="e.g., Amazon Reforestation Initiative"
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
-              <Input 
-                id="location" 
-                value={formValues.location} 
+              <Input
+                id="location"
+                value={formValues.location}
                 onChange={(e) => handleChange("location", e.target.value)}
-                placeholder="e.g., Brazil, Amazon Basin" 
-                required 
+                placeholder="e.g., Brazil, Amazon Basin"
+                required
               />
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="project-type">Project Type</Label>
-              <Select 
-                value={formValues.type} 
+              <Select
+                value={formValues.type}
                 onValueChange={(value) => handleChange("type", value)}
               >
                 <SelectTrigger id="project-type">
@@ -174,46 +191,62 @@ const ProjectRegistrationForm = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="reforestation">Reforestation</SelectItem>
-                  <SelectItem value="renewable-energy">Renewable Energy</SelectItem>
-                  <SelectItem value="methane-capture">Methane Capture</SelectItem>
-                  <SelectItem value="soil-carbon">Soil Carbon Sequestration</SelectItem>
-                  <SelectItem value="conservation">Forest Conservation</SelectItem>
-                  <SelectItem value="blue-carbon">Blue Carbon (Coastal)</SelectItem>
+                  <SelectItem value="renewable-energy">
+                    Renewable Energy
+                  </SelectItem>
+                  <SelectItem value="methane-capture">
+                    Methane Capture
+                  </SelectItem>
+                  <SelectItem value="soil-carbon">
+                    Soil Carbon Sequestration
+                  </SelectItem>
+                  <SelectItem value="conservation">
+                    Forest Conservation
+                  </SelectItem>
+                  <SelectItem value="blue-carbon">
+                    Blue Carbon (Coastal)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="estimated-credits">Estimated Credits (tCO₂e)</Label>
-              <Input 
-                id="estimated-credits" 
-                type="number" 
+              <Label htmlFor="estimated-credits">
+                Estimated Credits (tCO₂e)
+              </Label>
+              <Input
+                id="estimated-credits"
+                type="number"
                 min="1"
-                value={formValues.estimatedCredits} 
-                onChange={(e) => handleChange("estimatedCredits", e.target.value)}
-                placeholder="e.g., 5000" 
-                required 
+                value={formValues.estimatedCredits}
+                onChange={(e) =>
+                  handleChange("estimatedCredits", e.target.value)
+                }
+                placeholder="e.g., 5000"
+                required
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="description">Project Description</Label>
-            <Textarea 
-              id="description" 
-              value={formValues.description} 
+            <Textarea
+              id="description"
+              value={formValues.description}
               onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="Describe the project's objectives, methodology, and expected impact..." 
-              className="h-24" 
-              required 
+              placeholder="Describe the project's objectives, methodology, and expected impact..."
+              className="h-24"
+              required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label>Project Documents</Label>
-            <div 
+            <div
               className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 dark:border-gray-600'
+                dragActive
+                  ? "border-primary bg-primary/5"
+                  : "border-gray-300 dark:border-gray-600"
               }`}
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
@@ -225,14 +258,15 @@ const ProjectRegistrationForm = ({
                 Drag and drop files here or click to browse
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Upload project documentation, methodologies, and supporting evidence
+                Upload project documentation, methodologies, and supporting
+                evidence
               </p>
-              <Input 
-                type="file" 
-                className="hidden" 
-                id="file-upload" 
+              <Input
+                type="file"
+                className="hidden"
+                id="file-upload"
                 multiple
-                onChange={handleFileChange} 
+                onChange={handleFileChange}
               />
               <Label htmlFor="file-upload" className="mt-4 inline-block">
                 <Button type="button" variant="outline" size="sm">
@@ -241,25 +275,27 @@ const ProjectRegistrationForm = ({
               </Label>
             </div>
           </div>
-          
+
           {/* Document Preview Section */}
           {documents.length > 0 && (
             <div className="space-y-2">
               <Label>Attached Documents ({documents.length})</Label>
               <div className="space-y-2 max-h-40 overflow-y-auto p-1">
                 {documents.map((doc) => (
-                  <div 
-                    key={doc.id} 
+                  <div
+                    key={doc.id}
                     className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-2 rounded-md"
                   >
                     <div className="flex items-center space-x-2">
                       <FileCheck className="h-4 w-4 text-green-600" />
-                      <span className="text-sm truncate max-w-[200px] sm:max-w-[300px]">{doc.name}</span>
+                      <span className="text-sm truncate max-w-[200px] sm:max-w-[300px]">
+                        {doc.name}
+                      </span>
                     </div>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
                       className="h-6 w-6 text-gray-500 hover:text-red-500"
                       onClick={() => removeDocument(doc.id)}
                     >
@@ -270,12 +306,20 @@ const ProjectRegistrationForm = ({
               </div>
             </div>
           )}
-          
+
           <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="bg-karbon-600 hover:bg-karbon-700" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              className="bg-karbon-600 hover:bg-karbon-700"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? "Registering..." : "Register Project"}
             </Button>
           </DialogFooter>
