@@ -1,40 +1,190 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardCheck, FileCheck, PlusCircle, Filter } from "lucide-react";
+import { ClipboardCheck, FileCheck, PlusCircle, Filter, Search, X, FileText, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ProjectRegistrationForm from "./ProjectRegistrationForm";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "sonner";
 
-type Project = {
+export type VerificationStatus = 'pending' | 'in_review' | 'verified' | 'rejected';
+export type ProjectDocument = {
+  id: number;
+  name: string;
+  type: string;
+  url: string;
+  uploadedAt: Date;
+};
+
+export type Project = {
   id: number;
   name: string;
   location: string;
   type: string;
   credits: number;
+  description?: string;
+  verificationStatus: VerificationStatus;
+  submittedAt: Date;
+  verifiedAt?: Date;
+  documents: ProjectDocument[];
 };
 
 const RegistryApp = () => {
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [filterType, setFilterType] = useState<string | undefined>(undefined);
+  const [filterLocation, setFilterLocation] = useState<string | undefined>(undefined);
+  const [filterStatus, setFilterStatus] = useState<VerificationStatus | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([
-    { id: 1, name: "Reforestation Project #1", location: "Brazil", type: "reforestation", credits: 125 },
-    { id: 2, name: "Reforestation Project #2", location: "Indonesia", type: "reforestation", credits: 250 },
-    { id: 3, name: "Reforestation Project #3", location: "Brazil", type: "reforestation", credits: 375 },
-    { id: 4, name: "Reforestation Project #4", location: "Indonesia", type: "reforestation", credits: 500 },
-    { id: 5, name: "Reforestation Project #5", location: "Brazil", type: "reforestation", credits: 625 },
+    { 
+      id: 1, 
+      name: "Reforestation Project #1", 
+      location: "Brazil", 
+      type: "reforestation", 
+      credits: 125,
+      description: "Large scale reforestation of degraded land in the Amazon basin",
+      verificationStatus: 'verified',
+      submittedAt: new Date(2024, 0, 15),
+      verifiedAt: new Date(2024, 2, 20),
+      documents: [
+        { id: 1, name: "Project Methodology.pdf", type: "application/pdf", url: "#", uploadedAt: new Date(2024, 0, 15) },
+        { id: 2, name: "Satellite Images.zip", type: "application/zip", url: "#", uploadedAt: new Date(2024, 0, 16) }
+      ]
+    },
+    { 
+      id: 2, 
+      name: "Reforestation Project #2", 
+      location: "Indonesia", 
+      type: "reforestation", 
+      credits: 250,
+      description: "Mangrove restoration project along coastal areas",
+      verificationStatus: 'in_review',
+      submittedAt: new Date(2024, 1, 5),
+      documents: [
+        { id: 3, name: "Project Description.pdf", type: "application/pdf", url: "#", uploadedAt: new Date(2024, 1, 5) }
+      ]
+    },
+    { 
+      id: 3, 
+      name: "Reforestation Project #3", 
+      location: "Brazil", 
+      type: "reforestation", 
+      credits: 375,
+      description: "Community-led forest restoration project",
+      verificationStatus: 'pending',
+      submittedAt: new Date(2024, 2, 10),
+      documents: []
+    },
+    { 
+      id: 4, 
+      name: "Solar Farm Project", 
+      location: "Indonesia", 
+      type: "renewable-energy", 
+      credits: 500,
+      description: "Large scale solar installation providing clean energy to local communities",
+      verificationStatus: 'verified',
+      submittedAt: new Date(2023, 11, 5),
+      verifiedAt: new Date(2024, 1, 15),
+      documents: [
+        { id: 4, name: "Technical Specifications.pdf", type: "application/pdf", url: "#", uploadedAt: new Date(2023, 11, 5) },
+        { id: 5, name: "Impact Assessment.docx", type: "application/docx", url: "#", uploadedAt: new Date(2023, 11, 8) }
+      ]
+    },
+    { 
+      id: 5, 
+      name: "Methane Capture Project", 
+      location: "Canada", 
+      type: "methane-capture", 
+      credits: 625,
+      description: "Capturing methane from agricultural waste",
+      verificationStatus: 'rejected',
+      submittedAt: new Date(2023, 10, 20),
+      documents: [
+        { id: 6, name: "Project Proposal.pdf", type: "application/pdf", url: "#", uploadedAt: new Date(2023, 10, 20) }
+      ]
+    },
   ]);
 
-  const handleRegistration = (projectData: any) => {
-    const newProject = {
+  const handleRegistration = (projectData: any, documents: ProjectDocument[]) => {
+    const newProject: Project = {
       id: projects.length + 1,
       name: projectData.name,
       location: projectData.location,
       type: projectData.type,
       credits: parseInt(projectData.estimatedCredits, 10),
+      description: projectData.description,
+      verificationStatus: 'pending',
+      submittedAt: new Date(),
+      documents
     };
     
     setProjects([newProject, ...projects]);
   };
+
+  const updateProjectStatus = (projectId: number, newStatus: VerificationStatus) => {
+    setProjects(prevProjects => 
+      prevProjects.map(project => {
+        if (project.id === projectId) {
+          const updatedProject = { 
+            ...project, 
+            verificationStatus: newStatus,
+            ...(newStatus === 'verified' ? { verifiedAt: new Date() } : {})
+          };
+          return updatedProject;
+        }
+        return project;
+      })
+    );
+
+    toast.success(`Project status updated to ${newStatus.replace('_', ' ')}`);
+    setSelectedProject(null);
+  };
+
+  const getVerificationStatusBadge = (status: VerificationStatus) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
+      case 'in_review':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">In Review</Badge>;
+      case 'verified':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Verified</Badge>;
+      case 'rejected':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Rejected</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
+  const filteredProjects = projects
+    .filter(project => !searchQuery || project.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                       project.location.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(project => !filterType || project.type === filterType)
+    .filter(project => !filterLocation || project.location === filterLocation)
+    .filter(project => !filterStatus || project.verificationStatus === filterStatus);
+
+  const projectTypes = Array.from(new Set(projects.map(p => p.type)));
+  const projectLocations = Array.from(new Set(projects.map(p => p.location)));
+
+  const pendingVerificationCount = projects.filter(p => p.verificationStatus === 'pending' || p.verificationStatus === 'in_review').length;
 
   return (
     <div className="space-y-6">
@@ -49,8 +199,26 @@ const RegistryApp = () => {
       </div>
       
       <div className="flex items-center space-x-4 mb-6">
-        <Input placeholder="Search projects..." className="max-w-xs" />
-        <Button variant="outline">
+        <div className="relative flex-grow max-w-md">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+          <Input 
+            placeholder="Search projects..." 
+            className="pl-9" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1"
+              onClick={() => setSearchQuery('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <Button variant="outline" onClick={() => setIsFilterOpen(true)}>
           <Filter className="mr-2 h-4 w-4" /> Filter
         </Button>
       </div>
@@ -75,7 +243,10 @@ const RegistryApp = () => {
           <CardContent>
             <div className="flex items-baseline">
               <div className="text-3xl font-bold">
-                {projects.reduce((sum, project) => sum + project.credits, 0).toLocaleString()}
+                {projects
+                  .filter(p => p.verificationStatus === 'verified')
+                  .reduce((sum, project) => sum + project.credits, 0)
+                  .toLocaleString()}
               </div>
               <div className="ml-1 text-lg">tCO₂e</div>
               <FileCheck className="ml-auto h-5 w-5 text-karbon-600" />
@@ -89,7 +260,7 @@ const RegistryApp = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline">
-              <div className="text-3xl font-bold">37</div>
+              <div className="text-3xl font-bold">{pendingVerificationCount}</div>
               <ClipboardCheck className="ml-auto h-5 w-5 text-ocean-600" />
             </div>
           </CardContent>
@@ -98,28 +269,52 @@ const RegistryApp = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle>Recent Projects</CardTitle>
-          <CardDescription>Latest carbon offset projects registered on the platform</CardDescription>
+          <CardTitle>Projects</CardTitle>
+          <CardDescription>
+            All carbon offset projects registered on the platform
+            {(searchQuery || filterType || filterLocation || filterStatus) && (
+              <span className="ml-2 text-sm">
+                ({filteredProjects.length} results)
+              </span>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {projects.map((project) => (
-              <div key={project.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
-                <div className="rounded-full bg-karbon-100 dark:bg-karbon-800 p-2 mr-4">
-                  <ClipboardCheck className="h-5 w-5 text-karbon-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">{project.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    Location: {project.location} • Credits: {project.credits.toLocaleString()} tCO₂e
-                  </div>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  <Button variant="outline" size="sm">View Details</Button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Credits (tCO₂e)</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Documents</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProjects.map((project) => (
+                <TableRow key={project.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                  <TableCell>{project.name}</TableCell>
+                  <TableCell className="capitalize">{project.type.replace('-', ' ')}</TableCell>
+                  <TableCell>{project.location}</TableCell>
+                  <TableCell>{project.credits.toLocaleString()}</TableCell>
+                  <TableCell>{getVerificationStatusBadge(project.verificationStatus)}</TableCell>
+                  <TableCell>{project.documents.length || "-"}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="outline" size="sm" onClick={() => setSelectedProject(project)}>Details</Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredProjects.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No projects found matching your criteria
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
@@ -128,6 +323,184 @@ const RegistryApp = () => {
         onOpenChange={setIsRegistrationOpen} 
         onProjectRegistered={handleRegistration}
       />
+
+      {/* Filter Dialog */}
+      <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Filter Projects</DialogTitle>
+            <DialogDescription>
+              Apply filters to narrow down project results
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="type" className="text-sm font-medium">Project Type</label>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger id="type">
+                  <SelectValue placeholder="All types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All types</SelectItem>
+                  {projectTypes.map((type) => (
+                    <SelectItem key={type} value={type} className="capitalize">{type.replace('-', ' ')}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <label htmlFor="location" className="text-sm font-medium">Location</label>
+              <Select value={filterLocation} onValueChange={setFilterLocation}>
+                <SelectTrigger id="location">
+                  <SelectValue placeholder="All locations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All locations</SelectItem>
+                  {projectLocations.map((location) => (
+                    <SelectItem key={location} value={location}>{location}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <label htmlFor="status" className="text-sm font-medium">Verification Status</label>
+              <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value as VerificationStatus || undefined)}>
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="in_review">In Review</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setFilterType(undefined);
+              setFilterLocation(undefined);
+              setFilterStatus(undefined);
+            }}>
+              Reset
+            </Button>
+            <Button onClick={() => setIsFilterOpen(false)}>Apply Filters</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Project Details Dialog */}
+      <Dialog open={!!selectedProject} onOpenChange={(open) => !open && setSelectedProject(null)}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          {selectedProject && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center justify-between">
+                  <span>{selectedProject.name}</span>
+                  <div>{getVerificationStatusBadge(selectedProject.verificationStatus)}</div>
+                </DialogTitle>
+                <DialogDescription>
+                  ID: {selectedProject.id} • Submitted: {selectedProject.submittedAt.toLocaleDateString()}
+                  {selectedProject.verifiedAt && ` • Verified: ${selectedProject.verifiedAt.toLocaleDateString()}`}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="grid gap-6 py-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Project Type</h3>
+                    <p className="capitalize">{selectedProject.type.replace('-', ' ')}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Location</h3>
+                    <p>{selectedProject.location}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Credits</h3>
+                    <p>{selectedProject.credits.toLocaleString()} tCO₂e</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
+                  <p>{selectedProject.description || "No description provided"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Project Documents</h3>
+                  {selectedProject.documents.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedProject.documents.map(doc => (
+                        <div key={doc.id} className="flex items-center p-2 border rounded-lg bg-gray-50 dark:bg-gray-900">
+                          <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <span className="flex-1 text-sm">{doc.name}</span>
+                          <span className="text-xs text-muted-foreground mr-2">
+                            {doc.uploadedAt.toLocaleDateString()}
+                          </span>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No documents attached</p>
+                  )}
+                </div>
+                
+                {(selectedProject.verificationStatus === 'pending' || selectedProject.verificationStatus === 'in_review') && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">Verification Actions</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProject.verificationStatus === 'pending' && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                          onClick={() => updateProjectStatus(selectedProject.id, 'in_review')}
+                        >
+                          Start Review
+                        </Button>
+                      )}
+                      
+                      {selectedProject.verificationStatus === 'in_review' && (
+                        <>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                            onClick={() => updateProjectStatus(selectedProject.id, 'verified')}
+                          >
+                            Approve & Verify
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                            onClick={() => updateProjectStatus(selectedProject.id, 'rejected')}
+                          >
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSelectedProject(null)}>Close</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

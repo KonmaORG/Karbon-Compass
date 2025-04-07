@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { X, FileCheck, Upload, Paperclip } from "lucide-react";
+import { ProjectDocument } from "./RegistryApp";
 
 type ProjectFormValues = {
   name: string;
@@ -27,7 +29,7 @@ const initialFormValues: ProjectFormValues = {
 interface ProjectRegistrationFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onProjectRegistered?: (project: ProjectFormValues) => void;
+  onProjectRegistered?: (project: ProjectFormValues, documents: ProjectDocument[]) => void;
 }
 
 const ProjectRegistrationForm = ({ 
@@ -37,12 +39,61 @@ const ProjectRegistrationForm = ({
 }: ProjectRegistrationFormProps) => {
   const [formValues, setFormValues] = useState<ProjectFormValues>(initialFormValues);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [documents, setDocuments] = useState<ProjectDocument[]>([]);
+  const [dragActive, setDragActive] = useState(false);
 
   const handleChange = (field: keyof ProjectFormValues, value: string) => {
     setFormValues(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(e.target.files);
+    }
+  };
+
+  const handleFiles = (files: FileList) => {
+    // Convert FileList to array and process
+    Array.from(files).forEach(file => {
+      // In a real app, you would upload files to a server here
+      const newDocument: ProjectDocument = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        name: file.name,
+        type: file.type,
+        url: URL.createObjectURL(file), // Create a temporary URL for preview
+        uploadedAt: new Date()
+      };
+      
+      setDocuments(prevDocs => [...prevDocs, newDocument]);
+      toast.success(`File ${file.name} added`);
+    });
+  };
+
+  const removeDocument = (docId: number) => {
+    setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== docId));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +106,7 @@ const ProjectRegistrationForm = ({
       
       // Handle success
       if (onProjectRegistered) {
-        onProjectRegistered(formValues);
+        onProjectRegistered(formValues, documents);
       }
       
       toast.success("Project successfully registered", {
@@ -64,6 +115,7 @@ const ProjectRegistrationForm = ({
       
       // Reset form and close dialog
       setFormValues(initialFormValues);
+      setDocuments([]);
       onOpenChange(false);
     } catch (error) {
       toast.error("Failed to register project", {
@@ -76,7 +128,7 @@ const ProjectRegistrationForm = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Register New Carbon Offset Project</DialogTitle>
           <DialogDescription>
@@ -156,6 +208,68 @@ const ProjectRegistrationForm = ({
               required 
             />
           </div>
+          
+          <div className="space-y-2">
+            <Label>Project Documents</Label>
+            <div 
+              className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 dark:border-gray-600'
+              }`}
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+            >
+              <Paperclip className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+              <p className="text-sm font-medium">
+                Drag and drop files here or click to browse
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Upload project documentation, methodologies, and supporting evidence
+              </p>
+              <Input 
+                type="file" 
+                className="hidden" 
+                id="file-upload" 
+                multiple
+                onChange={handleFileChange} 
+              />
+              <Label htmlFor="file-upload" className="mt-4 inline-block">
+                <Button type="button" variant="outline" size="sm">
+                  <Upload className="mr-2 h-4 w-4" /> Browse Files
+                </Button>
+              </Label>
+            </div>
+          </div>
+          
+          {/* Document Preview Section */}
+          {documents.length > 0 && (
+            <div className="space-y-2">
+              <Label>Attached Documents ({documents.length})</Label>
+              <div className="space-y-2 max-h-40 overflow-y-auto p-1">
+                {documents.map((doc) => (
+                  <div 
+                    key={doc.id} 
+                    className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-2 rounded-md"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <FileCheck className="h-4 w-4 text-green-600" />
+                      <span className="text-sm truncate max-w-[200px] sm:max-w-[300px]">{doc.name}</span>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 text-gray-500 hover:text-red-500"
+                      onClick={() => removeDocument(doc.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
