@@ -191,7 +191,7 @@ const RegistryApp = () => {
     .filter(project => !filterType || filterType === "all-types" || project.type === filterType)
     .filter(project => !filterLocation || filterLocation === "all-locations" || project.location === filterLocation)
     .filter(project => {
-      if (!filterStatus || filterStatus === "all-statuses") return true;
+      if (!filterStatus) return true;
       return project.verificationStatus === filterStatus;
     });
 
@@ -395,7 +395,7 @@ const RegistryApp = () => {
               <label htmlFor="status" className="text-sm font-medium">Verification Status</label>
               <Select 
                 value={filterStatus} 
-                onValueChange={(value) => {
+                onValueChange={(value: string) => {
                   if (value === "all-statuses") {
                     setFilterStatus(undefined);
                   } else {
