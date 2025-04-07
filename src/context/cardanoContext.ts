@@ -5,11 +5,11 @@ import {
   PaymentKeyHash,
   StakeKeyHash,
 } from "@lucid-evolution/lucid";
-import { Wallet } from "@/types/cardano";
+import { CardanoWallet } from "@/types/cardano";
 
 export type Cardano = {
   lucid?: LucidEvolution;
-  wallet?: Wallet;
+  wallet?: CardanoWallet;
   address?: Address;
   balance?: number;
   pkh?: PaymentKeyHash;

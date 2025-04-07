@@ -1,6 +1,6 @@
 import { WalletApi } from "@lucid-evolution/lucid";
 
-export type Wallet = {
+export type CardanoWallet = {
   name: string;
   icon: string;
   enable(): Promise<WalletApi>;

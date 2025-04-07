@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, User, Settings, Wallet, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,9 @@ import {
 } from "@/components/ui/select";
 import { AppType } from "@/component_pages/Dashboard";
 import Link from "next/link";
-
+import { CardanoWallet } from "@/types/cardano";
+import { useCardano } from "@/context/cardanoContext";
+import { hexToBech32 } from "@/lib/utils";
 interface DashboardHeaderProps {
   activeApp: AppType;
 }
@@ -59,15 +61,49 @@ const getAppTitle = (activeApp: AppType): string => {
 };
 
 const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
+  const [walletConnection, setWalletConnection] = useCardano();
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [walletType, setWalletType] = useState<WalletType>(null);
+  const [cardanoWallets, setCardanoWallets] = useState<CardanoWallet[]>([]);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [selectedNetwork, setSelectedNetwork] =
     useState<BlockchainNetwork>("ethereum");
 
-  const connectWallet = async (type: WalletType) => {
+  useEffect(() => {
+    const installedWallets: CardanoWallet[] = [];
+    const { cardano } = window;
+
+    for (const c in cardano) {
+      const wallet = cardano[c];
+
+      if (!wallet.apiVersion) continue;
+      installedWallets.push(wallet);
+    }
+    const updatedWallets = cardanoWallets;
+    installedWallets.forEach((provider) => {
+      const index = updatedWallets.findIndex(
+        (wallet) => wallet.name.toLowerCase() === provider.name.toLowerCase()
+      );
+      if (index !== -1) {
+        updatedWallets[index] = {
+          ...updatedWallets[index],
+          enable: provider.enable,
+        };
+      } else {
+        updatedWallets.push({
+          name: provider.name,
+          enable: provider.enable,
+          icon: provider.icon,
+        });
+      }
+    });
+    setCardanoWallets(
+      updatedWallets.sort((a, b) => a.name.localeCompare(b.name))
+    );
+  }, []);
+  const connectWalletMock = async (type: WalletType) => {
     setIsConnecting(true);
 
     try {
@@ -124,11 +160,54 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
     }
   };
 
+  const connectWallet = async (wallet: CardanoWallet) => {
+    setIsConnecting(true);
+    try {
+      if (selectedNetwork === "ethereum") {
+        // Cardano Wallet connection logic
+        console.log("Connecting to Ethereum network...");
+      } else {
+        const api = await wallet.enable();
+        const addressHex = await api.getChangeAddress();
+
+        const address = hexToBech32(addressHex);
+        const balance = parseInt(await api.getBalance());
+        console.log(address);
+        setWalletConnection((prev: any) => {
+          return { ...prev, wallet, address, balance };
+        });
+        setWalletAddress(address);
+        setWalletType(wallet.name as WalletType);
+        setIsConnected(true);
+        setUserRole("user"); // Default role for Cardano wallets
+        toast.success(
+          `Wallet connected: ${wallet.name} on ${
+            selectedNetwork.charAt(0).toUpperCase() + selectedNetwork.slice(1)
+          }`
+        );
+      }
+    } catch (error) {
+      toast.error("Failed to connect wallet");
+      console.error("Wallet connection error:", error);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
   const disconnectWallet = () => {
     setIsConnected(false);
     setWalletAddress("");
     setWalletType(null);
     setUserRole(null);
+    setWalletConnection((prev: any) => {
+      return {
+        ...prev,
+        wallet: undefined,
+        address: "",
+        balance: undefined,
+        pkh: undefined,
+        skh: undefined,
+      };
+    });
     toast.info("Wallet disconnected");
   };
 
@@ -167,13 +246,13 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
         <>
           <DropdownMenuItem
             disabled={isConnecting}
-            onClick={() => connectWallet("MetaMask")}
+            onClick={() => connectWalletMock("MetaMask")}
           >
             MetaMask
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={isConnecting}
-            onClick={() => connectWallet("WalletConnect")}
+            onClick={() => connectWalletMock("WalletConnect")}
           >
             WalletConnect
           </DropdownMenuItem>
@@ -182,18 +261,15 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
     } else {
       return (
         <>
-          <DropdownMenuItem
-            disabled={isConnecting}
-            onClick={() => connectWallet("Yoroi")}
-          >
-            Yoroi
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={isConnecting}
-            onClick={() => connectWallet("Lace")}
-          >
-            Lace
-          </DropdownMenuItem>
+          {cardanoWallets.map((wallet) => (
+            <DropdownMenuItem
+              key={wallet.name}
+              disabled={isConnecting}
+              onClick={() => connectWallet(wallet)}
+            >
+              {wallet.name}
+            </DropdownMenuItem>
+          ))}
         </>
       );
     }
@@ -244,7 +320,7 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
                 <Button variant="outline" size="sm" className="gap-2">
                   <Wallet size={16} />
                   <span className="hidden sm:inline-block text-xs">
-                    {walletAddress}
+                    {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                   </span>
                   <span
                     className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(
@@ -257,8 +333,8 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Wallet Connected</DropdownMenuLabel>
-                <DropdownMenuItem className="text-xs">
-                  {walletAddress}
+                <DropdownMenuItem className="text-xs md:w-44">
+                  {walletAddress.slice(0, 14)}...{walletAddress.slice(-8)}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Wallet Type</DropdownMenuLabel>
@@ -284,9 +360,16 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={isConnecting}
+                >
                   <Wallet size={16} />
-                  <span className="hidden sm:inline-block">Connect Wallet</span>
+                  <span className="hidden sm:inline-block">
+                    {isConnecting ? "Connecting..." : "Connect Wallet"}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
