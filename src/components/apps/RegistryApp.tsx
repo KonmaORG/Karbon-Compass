@@ -15,6 +15,7 @@ import {
   X,
   FileText,
   Download,
+  CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +74,8 @@ export type Project = {
 
 const RegistryApp = () => {
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
+  const [isVerificationDialogOpen, setIsVerificationDialogOpen] =
+    useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [filterType, setFilterType] = useState<string | undefined>(undefined);
   const [filterLocation, setFilterLocation] = useState<string | undefined>(
@@ -275,6 +278,21 @@ const RegistryApp = () => {
     }
   };
 
+  const openVerificationDialog = () => {
+    const pendingProjects = projects.filter(
+      (p) =>
+        p.verificationStatus === "pending" ||
+        p.verificationStatus === "in_review"
+    );
+
+    if (pendingProjects.length === 0) {
+      toast.info("No projects currently pending verification");
+      return;
+    }
+
+    setIsVerificationDialogOpen(true);
+  };
+
   const filteredProjects = projects
     .filter(
       (project) =>
@@ -282,11 +300,20 @@ const RegistryApp = () => {
         project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         project.location.toLowerCase().includes(searchQuery.toLowerCase())
     )
-    .filter((project) => !filterType || project.type === filterType)
-    .filter((project) => !filterLocation || project.location === filterLocation)
     .filter(
-      (project) => !filterStatus || project.verificationStatus === filterStatus
-    );
+      (project) =>
+        !filterType || filterType === "all-types" || project.type === filterType
+    )
+    .filter(
+      (project) =>
+        !filterLocation ||
+        filterLocation === "all-locations" ||
+        project.location === filterLocation
+    )
+    .filter((project) => {
+      if (!filterStatus) return true;
+      return project.verificationStatus === filterStatus;
+    });
 
   const projectTypes = Array.from(new Set(projects.map((p) => p.type)));
   const projectLocations = Array.from(new Set(projects.map((p) => p.location)));
@@ -295,17 +322,38 @@ const RegistryApp = () => {
     (p) =>
       p.verificationStatus === "pending" || p.verificationStatus === "in_review"
   ).length;
+  const pendingProjects = projects.filter(
+    (p) =>
+      p.verificationStatus === "pending" || p.verificationStatus === "in_review"
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Carbon Offset Project Registry</h2>
-        <Button
-          className="bg-karbon-600 hover:bg-karbon-700"
-          onClick={() => setIsRegistrationOpen(true)}
-        >
-          <PlusCircle className="mr-2 h-4 w-4" /> Register New Project
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+            onClick={openVerificationDialog}
+          >
+            <CheckSquare className="mr-2 h-4 w-4" /> Verify Projects
+            {pendingVerificationCount > 0 && (
+              <Badge
+                className="ml-2 bg-amber-200 text-amber-800"
+                variant="outline"
+              >
+                {pendingVerificationCount}
+              </Badge>
+            )}
+          </Button>
+          <Button
+            className="bg-karbon-600 hover:bg-karbon-700"
+            onClick={() => setIsRegistrationOpen(true)}
+          >
+            <PlusCircle className="mr-2 h-4 w-4" /> Register New Project
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center space-x-4 mb-6">
@@ -512,9 +560,13 @@ const RegistryApp = () => {
               </label>
               <Select
                 value={filterStatus}
-                onValueChange={(value) =>
-                  setFilterStatus((value as VerificationStatus) || undefined)
-                }
+                onValueChange={(value: string) => {
+                  if (value === "all-statuses") {
+                    setFilterStatus(undefined);
+                  } else {
+                    setFilterStatus(value as VerificationStatus);
+                  }
+                }}
               >
                 <SelectTrigger id="status">
                   <SelectValue placeholder="All statuses" />
@@ -534,9 +586,9 @@ const RegistryApp = () => {
             <Button
               variant="outline"
               onClick={() => {
-                setFilterType("all-types");
-                setFilterLocation("all-locations");
-                setFilterStatus("all-statuses" as any);
+                setFilterType(undefined);
+                setFilterLocation(undefined);
+                setFilterStatus(undefined);
               }}
             >
               Reset
@@ -650,11 +702,12 @@ const RegistryApp = () => {
                           size="sm"
                           variant="outline"
                           className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
-                          onClick={() =>
-                            updateProjectStatus(selectedProject.id, "in_review")
-                          }
+                          onClick={() => {
+                            setSelectedProject(selectedProject);
+                            setIsVerificationDialogOpen(false);
+                          }}
                         >
-                          Start Review
+                          View Details
                         </Button>
                       )}
 
@@ -664,25 +717,31 @@ const RegistryApp = () => {
                             size="sm"
                             variant="outline"
                             className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                            onClick={() =>
+                            onClick={() => {
                               updateProjectStatus(
                                 selectedProject.id,
                                 "verified"
-                              )
-                            }
+                              );
+                              toast.success(
+                                `${selectedProject.name} has been verified`
+                              );
+                            }}
                           >
-                            Approve & Verify
+                            Approve
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-                            onClick={() =>
+                            onClick={() => {
                               updateProjectStatus(
                                 selectedProject.id,
                                 "rejected"
-                              )
-                            }
+                              );
+                              toast.error(
+                                `${selectedProject.name} has been rejected`
+                              );
+                            }}
                           >
                             Reject
                           </Button>
@@ -703,6 +762,116 @@ const RegistryApp = () => {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isVerificationDialogOpen}
+        onOpenChange={setIsVerificationDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Project Verification</DialogTitle>
+            <DialogDescription>
+              Manage projects awaiting verification
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            {pendingProjects.length > 0 ? (
+              <div className="space-y-4">
+                {pendingProjects.map((project) => (
+                  <Card key={project.id} className="overflow-hidden">
+                    <div className="flex items-center justify-between p-4">
+                      <div>
+                        <h3 className="font-medium">{project.name}</h3>
+                        <div className="text-sm text-muted-foreground">
+                          {project.type.replace("-", " ")} • {project.location}{" "}
+                          • {project.credits.toLocaleString()} tCO₂e
+                        </div>
+                        <div className="mt-1">
+                          {getVerificationStatusBadge(
+                            project.verificationStatus
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedProject(project);
+                            setIsVerificationDialogOpen(false);
+                          }}
+                        >
+                          View Details
+                        </Button>
+                        {project.verificationStatus === "pending" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                            onClick={() => {
+                              updateProjectStatus(project.id, "in_review");
+                              toast.success(`${project.name} moved to review`);
+                            }}
+                          >
+                            Start Review
+                          </Button>
+                        )}
+                        {project.verificationStatus === "in_review" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                              onClick={() => {
+                                updateProjectStatus(project.id, "verified");
+                                toast.success(
+                                  `${project.name} has been verified`
+                                );
+                              }}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                              onClick={() => {
+                                updateProjectStatus(project.id, "rejected");
+                                toast.error(
+                                  `${project.name} has been rejected`
+                                );
+                              }}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <ClipboardCheck className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="text-muted-foreground">
+                  No projects pending verification
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsVerificationDialogOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
