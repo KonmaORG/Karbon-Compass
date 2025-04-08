@@ -166,7 +166,7 @@ const ProjectRegistrationForm = ({
       // await new Promise((resolve) => setTimeout(resolve, 1000));
       //call cardano register function here
       const documentsHash = await calculateCombinedHash(documents);
-      submitProject(
+      await submitProject(
         walletConnection,
         documentsHash,
         formValues.type,

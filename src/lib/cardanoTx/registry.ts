@@ -1,4 +1,8 @@
-import { ValidatorContract, ValidatorMinter } from "@/config/scripts/scripts";
+import {
+  ConfigDatumHolderValidator,
+  ValidatorContract,
+  ValidatorMinter,
+} from "@/config/scripts/scripts";
 import { Cardano } from "@/context/cardanoContext";
 import {
   Constr,
@@ -6,12 +10,14 @@ import {
   fromHex,
   fromText,
   Lucid,
+  LucidEvolution,
   mintingPolicyToId,
   paymentCredentialOf,
   stakeCredentialOf,
   TxSignBuilder,
   UTxO,
   Validator,
+  validatorToAddress,
 } from "@lucid-evolution/lucid";
 // import {
 //   getAddress,
@@ -26,8 +32,16 @@ import {
   KarbonRedeemerSpend,
 } from "@/types/cardano/redeemer";
 import { AssetClass, KarbonDatum } from "@/types/cardano/datum";
-import { NETWORK, PROVIDER, SIGNER1, SIGNER2, SIGNER3 } from "@/config";
+import {
+  IDENTIFICATION_PID,
+  NETWORK,
+  PROVIDER,
+  SIGNER1,
+  SIGNER2,
+  SIGNER3,
+} from "@/config";
 import { handleError } from "../utils";
+import { privateKeytoAddress, refUtxo } from "./utils";
 
 export async function submit(tx: TxSignBuilder) {
   const signed = await tx.sign.withWallet().complete();
@@ -48,63 +62,65 @@ export async function submitProject(
     const lucid = await Lucid(PROVIDER, NETWORK);
     lucid.selectWallet.fromAPI(walletAPI);
 
-    // const validatorContractAddress = getAddress(ValidatorContract);
-    // const mintingValidator: Validator = ValidatorMinter();
+    const validator = ValidatorContract();
+    const validatorContractAddress = validatorToAddress(NETWORK, validator);
+    const mintingValidator: Validator = ValidatorMinter();
 
-    // const policyID = mintingPolicyToId(mintingValidator);
-    // const projectAssetName = projectTitle;
-    // const mintedAssets = { [policyID + fromText(projectAssetName)]: 1n };
+    const policyID = mintingPolicyToId(mintingValidator);
+    const projectAssetName = projectTitle;
+    const mintedAssets = { [policyID + fromText(projectAssetName)]: 1n };
 
-    // const refutxo = await refUtxo(lucid);
+    const refutxo = await refUtxo(lucid);
 
-    // const redeemer = Data.to(0n);
+    const redeemer = Data.to(0n);
 
-    // const assestClass: AssetClass = {
-    //   policyid: "",
-    //   asset_name: fromText(""),
-    // };
+    const assestClass: AssetClass = {
+      policyid: "",
+      asset_name: fromText(""),
+    };
 
-    // const datum: KarbonDatum = {
-    //   developer: [
-    //     paymentCredentialOf(address).hash,
-    //     stakeCredentialOf(address).hash ?? "",
-    //   ],
-    //   document: fileHash,
-    //   categories: fromText(category),
-    //   asset_name: fromText(projectAssetName),
-    //   fees_amount: 100_000_000n,
-    //   fees_asset_class: assestClass,
-    // };
+    const datum: KarbonDatum = {
+      developer: [
+        paymentCredentialOf(address).hash,
+        stakeCredentialOf(address).hash ?? "",
+      ],
+      document: fileHash,
+      categories: fromText(category),
+      asset_name: fromText(projectAssetName),
+      fees_amount: 100_000_000n,
+      fees_asset_class: assestClass,
+    };
 
-    // const tx = await lucid
-    //   .newTx()
-    //   .readFrom(refutxo)
-    //   .pay.ToAddressWithData(
-    //     validatorContractAddress,
-    //     { kind: "inline", value: Data.to(datum, KarbonDatum) },
-    //     { lovelace: 3_000_000n, ...mintedAssets }
-    //   )
-    //   .pay.ToAddress(await privateKeytoAddress(SIGNER3), {
-    //     lovelace: 100_000_000n,
-    //   })
-    //   .mintAssets(mintedAssets, redeemer)
-    //   .attach.MintingPolicy(mintingValidator)
-    //   .attachMetadata(721, {
-    //     [policyID]: {
-    //       [projectAssetName]: {
-    //         name: projectAssetName,
-    //         image: "https://avatars.githubusercontent.com/u/106166350",
-    //       },
-    //     },
-    //   })
-    //   .complete();
+    const tx = await lucid
+      .newTx()
+      .readFrom(refutxo)
+      .pay.ToAddressWithData(
+        validatorContractAddress,
+        { kind: "inline", value: Data.to(datum, KarbonDatum) },
+        { lovelace: 3_000_000n, ...mintedAssets }
+      )
+      .pay.ToAddress(await privateKeytoAddress(SIGNER3), {
+        lovelace: 100_000_000n,
+      })
+      .mintAssets(mintedAssets, redeemer)
+      .attach.MintingPolicy(mintingValidator)
+      .attachMetadata(721, {
+        [policyID]: {
+          [projectAssetName]: {
+            name: projectAssetName,
+            image: "https://avatars.githubusercontent.com/u/106166350",
+          },
+        },
+      })
+      .complete();
 
-    // const txHash = await submit(tx);
+    const txHash = await submit(tx);
 
-    // console.log("txHash: ", txHash);
-    // return { status: "ok", txHash };
+    console.log("txHash: ", txHash);
+    return { status: "ok", txHash };
   } catch (error: any) {
-    return { status: "error", error: handleError(error) };
+    console.log(error);
+    throw { error: handleError(error) };
   }
 }
 
