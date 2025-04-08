@@ -23,6 +23,8 @@ import {
 import { X, FileCheck, Upload, Paperclip } from "lucide-react";
 import { ProjectDocument } from "./RegistryApp";
 import { CATEGORIES } from "@/config";
+import { submitProject } from "@/lib/cardanoTx/registry";
+import { useCardano } from "@/context/cardanoContext";
 
 type ProjectFormValues = {
   name: string;
@@ -54,6 +56,7 @@ const ProjectRegistrationForm = ({
   onOpenChange,
   onProjectRegistered,
 }: ProjectRegistrationFormProps) => {
+  const [walletConnection] = useCardano();
   const [formValues, setFormValues] =
     useState<ProjectFormValues>(initialFormValues);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,6 +91,7 @@ const ProjectRegistrationForm = ({
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("click", e.target.files);
     if (e.target.files && e.target.files.length > 0) {
       handleFiles(e.target.files);
     }
@@ -120,8 +124,15 @@ const ProjectRegistrationForm = ({
 
     try {
       // Simulate API call with timeout
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
+      // await new Promise((resolve) => setTimeout(resolve, 1000));
+      //call cardano register function here
+      submitProject(
+        walletConnection,
+        documents,
+        formValues.type,
+        formValues.name
+      );
+      console.log(formValues, documents);
       // Handle success
       if (onProjectRegistered) {
         onProjectRegistered(formValues, documents);
