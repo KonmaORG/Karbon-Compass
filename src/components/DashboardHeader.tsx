@@ -23,6 +23,8 @@ import Link from "next/link";
 import { CardanoWallet } from "@/types/cardano/cardano";
 import { useCardano } from "@/context/cardanoContext";
 import { hexToBech32 } from "@/lib/utils";
+import { NETWORK, PROVIDER } from "@/config";
+import { Lucid } from "@lucid-evolution/lucid";
 interface DashboardHeaderProps {
   activeApp: AppType;
 }
@@ -168,9 +170,9 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
         console.log("Connecting to Ethereum network...");
       } else {
         const api = await wallet.enable();
-        const addressHex = await api.getChangeAddress();
-
-        const address = hexToBech32(addressHex);
+        const lucid = await Lucid(PROVIDER, NETWORK);
+        await lucid.selectWallet.fromAPI(api);
+        const address = await lucid.wallet().address();
         const balance = parseInt(await api.getBalance());
         console.log(address);
         setWalletConnection((prev: any) => {
