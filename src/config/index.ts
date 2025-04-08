@@ -43,3 +43,9 @@ export const KARBONSTOREADDR = validatorToAddress(
   NETWORK,
   KarbonStoreValidator
 );
+
+// EMISSION
+export const COTPOLICYID: PolicyId =
+  "c51587c8961294b98b440c30ec96cdf9b4d7bde97a960c7cb62f3c78";
+export const identificationPolicyid = process.env
+  .NEXT_PUBLIC_IDENTIFICATION_PID as PolicyId;
