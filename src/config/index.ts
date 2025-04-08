@@ -3,7 +3,9 @@ import {
   Network,
   PolicyId,
   Provider,
+  validatorToAddress,
 } from "@lucid-evolution/lucid";
+import { KarbonStoreValidator } from "./scripts/marketplace/scripts";
 
 export const BF_URL = process.env.NEXT_PUBLIC_BF_URL!;
 export const BF_PID = process.env.NEXT_PUBLIC_BF_PID!;
@@ -31,3 +33,13 @@ export const CATEGORIES = [
   "Clean Transportation",
   "Other",
 ];
+
+// MARKETPLACE
+export const ROYALTY = 3;
+export const ROYALTYADDR =
+  "addr_test1qpcggzpxkmeq959e5xk79d6mtm9f6vnwd2w8z97qwx45wpy52dt4zw07q2cx8ly3l4vrwrtudyj55kwagwcj77z04ydswdysjy";
+
+export const KARBONSTOREADDR = validatorToAddress(
+  NETWORK,
+  KarbonStoreValidator
+);
