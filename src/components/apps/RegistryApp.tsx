@@ -810,77 +810,15 @@ const RegistryApp = () => {
           <div className="py-4">
             {pendingProjects.length > 0 ? (
               <div className="space-y-4">
-                {pendingProjects.map((project) => (
-                  <Card key={project.id} className="overflow-hidden">
-                    <div className="flex items-center justify-between p-4">
-                      <div>
-                        <h3 className="font-medium">{project.name}</h3>
-                        <div className="text-sm text-muted-foreground">
-                          {project.type.replace("-", " ")} • {project.location}{" "}
-                          • {project.credits.toLocaleString()} tCO₂e
-                        </div>
-                        <div className="mt-1">
-                          {getVerificationStatusBadge(
-                            project.verificationStatus
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedProject(project);
-                            setIsVerificationDialogOpen(false);
-                          }}
-                        >
-                          View Details
-                        </Button>
-                        {project.verificationStatus === "pending" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
-                            onClick={() => {
-                              updateProjectStatus(project.id, "in_review");
-                              toast.success(`${project.name} moved to review`);
-                            }}
-                          >
-                            Start Review
-                          </Button>
-                        )}
-                        {project.verificationStatus === "in_review" && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                              onClick={() => {
-                                updateProjectStatus(project.id, "verified");
-                                toast.success(
-                                  `${project.name} has been verified`
-                                );
-                              }}
-                            >
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-                              onClick={() => {
-                                updateProjectStatus(project.id, "rejected");
-                                toast.error(
-                                  `${project.name} has been rejected`
-                                );
-                              }}
-                            >
-                              Reject
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                {cardanoProjects.map((project, index) => (
+                  <Card key={index} className="overflow-hidden">
+                    <ProjectVerifyCard
+                      project={project}
+                      getVerificationStatusBadge={getVerificationStatusBadge}
+                      setIsVerificationDialogOpen={setIsVerificationDialogOpen}
+                      setSelectedProject={setSelectedProject}
+                      mockProject={filteredProjects[index]}
+                    />
                   </Card>
                 ))}
               </div>
@@ -952,6 +890,100 @@ function ProjectRows({
           </Button>
         </TableCell>
       </TableRow>
+    )
+  );
+}
+
+interface ProjectVerifyCardProps {
+  project: UTxO;
+  getVerificationStatusBadge: (
+    verificationStatus: VerificationStatus
+  ) => JSX.Element;
+  setIsVerificationDialogOpen: Dispatch<SetStateAction<boolean>>;
+  setSelectedProject: Dispatch<SetStateAction<Project | null>>;
+  mockProject: Project;
+}
+function ProjectVerifyCard({
+  project,
+  getVerificationStatusBadge,
+  setIsVerificationDialogOpen,
+  setSelectedProject,
+  mockProject,
+}: ProjectVerifyCardProps) {
+  const [datum, setDatum] = useState<KarbonDatum | undefined>(undefined);
+
+  useEffect(() => {
+    async function fetchDatum() {
+      const lucid = await Lucid(PROVIDER, NETWORK);
+      const data = await lucid.datumOf(project);
+      const datum = Data.castFrom(data, KarbonDatum);
+      setDatum(datum);
+    }
+    fetchDatum();
+  }, []);
+  return (
+    datum && (
+      <div className="flex items-center justify-between p-4">
+        <div>
+          <h3 className="font-medium">{toText(datum.asset_name)}</h3>
+          <div className="text-sm text-muted-foreground">
+            {toText(datum.categories)} • {"location"} • {"credits"} tCO₂e
+          </div>
+          <div className="mt-1">{getVerificationStatusBadge("pending")}</div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setSelectedProject(mockProject);
+              setIsVerificationDialogOpen(false);
+            }}
+          >
+            View Details
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+            // onClick={() => {
+            //   updateProjectStatus(project.id, "in_review");
+            //   toast.success(`${project.name} moved to review`);
+            // }}
+            disabled
+          >
+            Start Review
+          </Button>
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+              // onClick={() => {
+              //   updateProjectStatus(project.id, "verified");
+              //   toast.success(
+              //     `${project.name} has been verified`
+              //   );
+              // }}
+            >
+              Approve
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+              // onClick={() => {
+              //   updateProjectStatus(project.id, "rejected");
+              //   toast.error(
+              //     `${project.name} has been rejected`
+              //   );
+              // }}
+            >
+              Reject
+            </Button>
+          </>
+        </div>
+      </div>
     )
   );
 }
