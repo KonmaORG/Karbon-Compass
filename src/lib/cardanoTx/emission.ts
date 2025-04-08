@@ -31,9 +31,12 @@ import {
 } from "@lucid-evolution/lucid";
 
 export async function Burn(walletConnection: Cardano, qty: bigint) {
-  const { lucid, address } = walletConnection;
+  const { wallet, address } = walletConnection;
   try {
-    if (!lucid || !address) throw new Error("Connect Wallet");
+    if (!wallet || !address) throw new Error("Wallet Not Connected!");
+    const walletAPI = await wallet.enable();
+    const lucid = await Lucid(PROVIDER, NETWORK);
+    lucid.selectWallet.fromAPI(walletAPI);
     const cetMintingPolicy = CETMINTER;
     const cetPolicyId = mintingPolicyToId(cetMintingPolicy);
     const cotMintingPolicy = COTMINTER();
