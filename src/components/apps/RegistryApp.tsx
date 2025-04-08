@@ -60,6 +60,8 @@ import {
 import { ValidatorContract, ValidatorMinter } from "@/config/scripts/scripts";
 import { KarbonDatum } from "@/types/cardano/datum";
 import { Provider } from "@radix-ui/react-toast";
+import { acceptProject, rejectProject } from "@/lib/cardanoTx/registry";
+import { useCardano } from "@/context/cardanoContext";
 
 export type VerificationStatus =
   | "pending"
@@ -911,7 +913,7 @@ function ProjectVerifyCard({
   mockProject,
 }: ProjectVerifyCardProps) {
   const [datum, setDatum] = useState<KarbonDatum | undefined>(undefined);
-
+  const [walletConnection] = useCardano();
   useEffect(() => {
     async function fetchDatum() {
       const lucid = await Lucid(PROVIDER, NETWORK);
@@ -921,6 +923,22 @@ function ProjectVerifyCard({
     }
     fetchDatum();
   }, []);
+
+  const executeAction = async (confirmAction: "approve" | "reject") => {
+    if (!datum) return;
+    try {
+      let functionCallAction =
+        confirmAction === "approve" ? acceptProject : rejectProject;
+      await functionCallAction(walletConnection, project);
+
+      toast.success(
+        `${toText(datum.asset_name)} ${confirmAction}d successfully`
+      );
+    } catch (error: any) {
+      toast.error(`${toText(datum.asset_name)} ${confirmAction}d failed`);
+    }
+  };
+
   return (
     datum && (
       <div className="flex items-center justify-between p-4">
@@ -959,12 +977,7 @@ function ProjectVerifyCard({
               size="sm"
               variant="outline"
               className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-              // onClick={() => {
-              //   updateProjectStatus(project.id, "verified");
-              //   toast.success(
-              //     `${project.name} has been verified`
-              //   );
-              // }}
+              onClick={() => executeAction("approve")}
             >
               Approve
             </Button>
@@ -972,12 +985,7 @@ function ProjectVerifyCard({
               size="sm"
               variant="outline"
               className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-              // onClick={() => {
-              //   updateProjectStatus(project.id, "rejected");
-              //   toast.error(
-              //     `${project.name} has been rejected`
-              //   );
-              // }}
+              onClick={() => executeAction("reject")}
             >
               Reject
             </Button>

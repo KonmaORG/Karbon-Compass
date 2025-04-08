@@ -41,7 +41,7 @@ import {
   SIGNER3,
 } from "@/config";
 import { handleError } from "../utils";
-import { privateKeytoAddress, refUtxo } from "./utils";
+import { multiSignwithPrivateKey, privateKeytoAddress, refUtxo } from "./utils";
 
 export async function submit(tx: TxSignBuilder) {
   const signed = await tx.sign.withWallet().complete();
@@ -124,124 +124,132 @@ export async function submitProject(
   }
 }
 
-// export async function rejectProject(walletConnection: Cardano, utxo: UTxO) {
-//   const { lucid, address } = walletConnection;
-//   try {
-//     if (!address || !lucid) throw new Error("Wallet Not Connected!");
+export async function rejectProject(walletConnection: Cardano, utxo: UTxO) {
+  const { wallet, address } = walletConnection;
 
-//     const mintingValidator: Validator = ValidatorMinter();
-//     const policyID = mintingPolicyToId(mintingValidator);
-//     const validatorContract = ValidatorContract();
-//     const burnedAssets = Object.fromEntries(
-//       Object.entries(utxo.assets)
-//         .filter(([unit]) => unit.startsWith(policyID))
-//         .map(([unit, quantity]) => [unit, -quantity])
-//     );
+  try {
+    if (!wallet || !address) throw new Error("Wallet Not Connected!");
+    const walletAPI = await wallet.enable();
+    const lucid = await Lucid(PROVIDER, NETWORK);
+    lucid.selectWallet.fromAPI(walletAPI);
 
-//     const refutxo = await refUtxo(lucid);
+    const mintingValidator: Validator = ValidatorMinter();
+    const policyID = mintingPolicyToId(mintingValidator);
+    const validatorContract = ValidatorContract();
+    const burnedAssets = Object.fromEntries(
+      Object.entries(utxo.assets)
+        .filter(([unit]) => unit.startsWith(policyID))
+        .map(([unit, quantity]) => [unit, -quantity])
+    );
 
-//     const redeemerValidator: KarbonRedeemerSpend = {
-//       action: "Reject",
-//       amount: 0n,
-//       oref: {
-//         transaction_id: utxo.txHash,
-//         output_index: BigInt(utxo.outputIndex),
-//       },
-//     };
-//     const redeemer = Data.to(1n); // Burn
+    const refutxo = await refUtxo(lucid);
 
-//     const tx = await lucid
-//       .newTx()
-//       .readFrom(refutxo)
-//       .collectFrom([utxo], Data.to(redeemerValidator, KarbonRedeemerSpend))
-//       .attach.SpendingValidator(validatorContract)
-//       .mintAssets(burnedAssets, redeemer)
-//       .attach.MintingPolicy(mintingValidator)
-//       .addSigner(await privateKeytoAddress(SIGNER1))
-//       .addSigner(await privateKeytoAddress(SIGNER2))
-//       .complete();
+    const redeemerValidator: KarbonRedeemerSpend = {
+      action: "Reject",
+      amount: 0n,
+      oref: {
+        transaction_id: utxo.txHash,
+        output_index: BigInt(utxo.outputIndex),
+      },
+    };
+    const redeemer = Data.to(1n); // Burn
 
-//     const signed = await multiSignwithPrivateKey(tx, [SIGNER1, SIGNER2]);
-//     const txHash = await submit(signed);
+    const tx = await lucid
+      .newTx()
+      .readFrom(refutxo)
+      .collectFrom([utxo], Data.to(redeemerValidator, KarbonRedeemerSpend))
+      .attach.SpendingValidator(validatorContract)
+      .mintAssets(burnedAssets, redeemer)
+      .attach.MintingPolicy(mintingValidator)
+      .addSigner(await privateKeytoAddress(SIGNER1))
+      .addSigner(await privateKeytoAddress(SIGNER2))
+      .complete();
 
-//     console.log("-----------ProjectReject---------");
-//     console.log("txHash: ", txHash);
-//     return { status: "ok", txHash };
-//   } catch (error: any) {
-//     console.log(error);
-//     return { status: "error", error: handleError(error) };
-//   }
-// }
+    const signed = await multiSignwithPrivateKey(tx, [SIGNER1, SIGNER2]);
+    const txHash = await submit(signed);
 
-// export async function acceptProject(walletConnection: Cardano, utxo: UTxO) {
-//   const { lucid, address } = walletConnection;
-//   try {
-//     if (!address || !lucid) throw "Wallet Not Connected";
+    console.log("-----------ProjectReject---------");
+    console.log("txHash: ", txHash);
+    return { status: "ok", txHash };
+  } catch (error: any) {
+    console.log(error);
+    throw { error: handleError(error) };
+  }
+}
 
-//     const mintingValidator: Validator = ValidatorMinter();
-//     const policyIDMinter = mintingPolicyToId(mintingValidator);
-//     const validatorContract = ValidatorContract();
-//     const policyIDCarbon = mintingPolicyToId(validatorContract);
+export async function acceptProject(walletConnection: Cardano, utxo: UTxO) {
+  const { wallet, address } = walletConnection;
 
-//     const burnedAssets = Object.fromEntries(
-//       Object.entries(utxo.assets)
-//         .filter(([unit]) => unit.startsWith(policyIDMinter))
-//         .map(([unit, quantity]) => [unit, -quantity])
-//     );
+  try {
+    if (!wallet || !address) throw new Error("Wallet Not Connected!");
+    const walletAPI = await wallet.enable();
+    const lucid = await Lucid(PROVIDER, NETWORK);
+    lucid.selectWallet.fromAPI(walletAPI);
 
-//     // reference Utxo
-//     const refutxo = await refUtxo(lucid);
+    const mintingValidator: Validator = ValidatorMinter();
+    const policyIDMinter = mintingPolicyToId(mintingValidator);
+    const validatorContract = ValidatorContract();
+    const policyIDCarbon = mintingPolicyToId(validatorContract);
 
-//     // Reedemer
-//     const redeemer = {
-//       amount: 100n,
-//       oref: {
-//         transaction_id: utxo.txHash,
-//         output_index: BigInt(utxo.outputIndex),
-//       },
-//     };
-//     const redeemerValidatorSpend: KarbonRedeemerSpend = {
-//       action: "Accept",
-//       ...redeemer,
-//     };
-//     const redeemerValidatorMint: KarbonRedeemerMint = {
-//       action: "Mint",
-//       ...redeemer,
-//     };
-//     const validatorMinterRedeemer = Data.to(1n); // Burn
-//     // end Redeemer
-//     const oRef = new Constr(0, [String(utxo.txHash), BigInt(utxo.outputIndex)]);
+    const burnedAssets = Object.fromEntries(
+      Object.entries(utxo.assets)
+        .filter(([unit]) => unit.startsWith(policyIDMinter))
+        .map(([unit, quantity]) => [unit, -quantity])
+    );
 
-//     // assetName
-//     const oRefCBOR = Data.to(oRef);
-//     const assetName = blake2bHex(fromHex(oRefCBOR), undefined, 28);
-//     const carbonMintAssets = { [policyIDCarbon + assetName]: redeemer.amount };
-//     // Transaction
-//     const tx = await lucid
-//       .newTx()
-//       .readFrom(refutxo)
-//       .collectFrom([utxo], Data.to(redeemerValidatorSpend, KarbonRedeemerSpend))
-//       .pay.ToAddress(address, { ...carbonMintAssets, lovelace: 100n })
-//       .attach.SpendingValidator(validatorContract)
-//       .mintAssets(burnedAssets, validatorMinterRedeemer)
-//       .attach.MintingPolicy(mintingValidator)
-//       .mintAssets(
-//         carbonMintAssets,
-//         Data.to(redeemerValidatorMint, KarbonRedeemerMint)
-//       )
-//       .attach.MintingPolicy(validatorContract)
-//       .addSigner(await privateKeytoAddress(SIGNER1))
-//       .addSigner(await privateKeytoAddress(SIGNER2))
-//       .complete();
+    // reference Utxo
+    const refutxo = await refUtxo(lucid);
 
-//     const signed = await multiSignwithPrivateKey(tx, [SIGNER1, SIGNER2]);
-//     const txHash = await submit(signed);
+    // Reedemer
+    const redeemer = {
+      amount: 100n,
+      oref: {
+        transaction_id: utxo.txHash,
+        output_index: BigInt(utxo.outputIndex),
+      },
+    };
+    const redeemerValidatorSpend: KarbonRedeemerSpend = {
+      action: "Accept",
+      ...redeemer,
+    };
+    const redeemerValidatorMint: KarbonRedeemerMint = {
+      action: "Mint",
+      ...redeemer,
+    };
+    const validatorMinterRedeemer = Data.to(1n); // Burn
+    // end Redeemer
+    const oRef = new Constr(0, [String(utxo.txHash), BigInt(utxo.outputIndex)]);
 
-//     console.log("-----------ProjectAccept---------");
-//     console.log("txHash: ", txHash);
-//     return { status: "ok", txHash };
-//   } catch (error: any) {
-//     console.log(error);
-//     return { status: "error", error: handleError(error) };
-//   }
-// }
+    // assetName
+    const oRefCBOR = Data.to(oRef);
+    const assetName = blake2bHex(fromHex(oRefCBOR), undefined, 28);
+    const carbonMintAssets = { [policyIDCarbon + assetName]: redeemer.amount };
+    // Transaction
+    const tx = await lucid
+      .newTx()
+      .readFrom(refutxo)
+      .collectFrom([utxo], Data.to(redeemerValidatorSpend, KarbonRedeemerSpend))
+      .pay.ToAddress(address, { ...carbonMintAssets, lovelace: 100n })
+      .attach.SpendingValidator(validatorContract)
+      .mintAssets(burnedAssets, validatorMinterRedeemer)
+      .attach.MintingPolicy(mintingValidator)
+      .mintAssets(
+        carbonMintAssets,
+        Data.to(redeemerValidatorMint, KarbonRedeemerMint)
+      )
+      .attach.MintingPolicy(validatorContract)
+      .addSigner(await privateKeytoAddress(SIGNER1))
+      .addSigner(await privateKeytoAddress(SIGNER2))
+      .complete();
+
+    const signed = await multiSignwithPrivateKey(tx, [SIGNER1, SIGNER2]);
+    const txHash = await submit(signed);
+
+    console.log("-----------ProjectAccept---------");
+    console.log("txHash: ", txHash);
+    return { status: "ok", txHash };
+  } catch (error: any) {
+    console.log(error);
+    throw { error: handleError(error) };
+  }
+}

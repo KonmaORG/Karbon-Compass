@@ -6,6 +6,7 @@ import {
   fromText,
   Validator,
   makeWalletFromPrivateKey,
+  TxSignBuilder,
 } from "@lucid-evolution/lucid";
 
 export async function refUtxo(lucid: LucidEvolution) {
@@ -29,4 +30,22 @@ export async function privateKeytoAddress(privateKey: string) {
     privateKey
   ).address();
   return privateeyAddress;
+}
+
+export async function multiSignwithPrivateKey(
+  tx: TxSignBuilder,
+  privateKeys: string[]
+) {
+  let signed = tx;
+  for (const privateKey of privateKeys) {
+    signed = await signWithPrivateKey(signed, privateKey);
+  }
+  return signed;
+}
+export async function signWithPrivateKey(
+  tx: TxSignBuilder,
+  privateKey: string
+) {
+  const signed = await tx.sign.withPrivateKey(privateKey);
+  return signed;
 }
