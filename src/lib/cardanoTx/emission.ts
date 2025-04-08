@@ -1,4 +1,4 @@
-import { identificationPolicyid, NETWORK } from "@/config";
+import { identificationPolicyid, NETWORK, PROVIDER } from "@/config";
 import {
   CETMINTER,
   ConfigDatumHolderValidator,
@@ -18,6 +18,7 @@ import {
   credentialToAddress,
   Data,
   fromText,
+  Lucid,
   LucidEvolution,
   mintingPolicyToId,
   paymentCredentialOf,
@@ -243,9 +244,12 @@ export function Identification() {
 }
 
 export async function CetMinter(walletConnection: Cardano, datum: CETDatum) {
-  const { lucid, address } = walletConnection;
+  const { wallet, address } = walletConnection;
   try {
-    if (!lucid || !address) throw new Error("Connect Wallet");
+    if (!wallet || !address) throw new Error("Wallet Not Connected!");
+    const walletAPI = await wallet.enable();
+    const lucid = await Lucid(PROVIDER, NETWORK);
+    lucid.selectWallet.fromAPI(walletAPI);
     const mintingPolicy = CETMINTER;
     const policyId = mintingPolicyToId(mintingPolicy);
     const tokens = { [policyId + fromText("Emision")]: datum.cet_qty };
@@ -261,8 +265,11 @@ export async function CetMinter(walletConnection: Cardano, datum: CETDatum) {
       paymentCredentialOf(userScript),
       stakeCredentialOf(address)
     );
+    console.log("userScriptAddress");
     const reedemer = Data.to(datum, CETDatum);
+    console.log("redeer", reedemer);
     const utxo = (await lucid.utxosAt(address))[0];
+    console.log("utxo", utxo);
     const tx = await lucid
       .newTx()
       .mintAssets(tokens, reedemer)
