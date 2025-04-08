@@ -1,5 +1,6 @@
 import { NETWORK, IDENTIFICATION_PID, PROVIDER } from "@/config";
 import { ConfigDatumHolderValidator } from "@/config/scripts/scripts";
+import { KarbonDatum } from "@/types/cardano/datum";
 import {
   LucidEvolution,
   validatorToAddress,
@@ -7,6 +8,10 @@ import {
   Validator,
   makeWalletFromPrivateKey,
   TxSignBuilder,
+  keyHashToCredential,
+  credentialToAddress,
+  UTxO,
+  Data,
 } from "@lucid-evolution/lucid";
 
 export async function refUtxo(lucid: LucidEvolution) {
@@ -48,4 +53,17 @@ export async function signWithPrivateKey(
 ) {
   const signed = await tx.sign.withPrivateKey(privateKey);
   return signed;
+}
+
+export function hashtoAddress(hash: string[]) {
+  const vkh = keyHashToCredential(hash[0]);
+  const skh = keyHashToCredential(hash[1]);
+  const address = credentialToAddress(NETWORK, vkh, skh);
+  return address;
+}
+
+export async function getKarbonDatum(lucid: LucidEvolution, utxo: UTxO) {
+  const data = await lucid.datumOf(utxo);
+  const datum = Data.castFrom(data, KarbonDatum);
+  return datum;
 }

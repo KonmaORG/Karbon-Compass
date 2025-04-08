@@ -41,7 +41,13 @@ import {
   SIGNER3,
 } from "@/config";
 import { handleError } from "../utils";
-import { multiSignwithPrivateKey, privateKeytoAddress, refUtxo } from "./utils";
+import {
+  getKarbonDatum,
+  hashtoAddress,
+  multiSignwithPrivateKey,
+  privateKeytoAddress,
+  refUtxo,
+} from "./utils";
 
 export async function submit(tx: TxSignBuilder) {
   const signed = await tx.sign.withWallet().complete();
@@ -200,6 +206,8 @@ export async function acceptProject(walletConnection: Cardano, utxo: UTxO) {
     // reference Utxo
     const refutxo = await refUtxo(lucid);
 
+    const datum = await getKarbonDatum(lucid, utxo);
+    const DeveloperAddress = hashtoAddress(datum.developer);
     // Reedemer
     const redeemer = {
       amount: 100n,
@@ -229,7 +237,7 @@ export async function acceptProject(walletConnection: Cardano, utxo: UTxO) {
       .newTx()
       .readFrom(refutxo)
       .collectFrom([utxo], Data.to(redeemerValidatorSpend, KarbonRedeemerSpend))
-      .pay.ToAddress(address, { ...carbonMintAssets, lovelace: 100n })
+      .pay.ToAddress(DeveloperAddress, { ...carbonMintAssets, lovelace: 100n })
       .attach.SpendingValidator(validatorContract)
       .mintAssets(burnedAssets, validatorMinterRedeemer)
       .attach.MintingPolicy(mintingValidator)

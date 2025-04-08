@@ -1,4 +1,9 @@
-import { identificationPolicyid, NETWORK, PROVIDER } from "@/config";
+import {
+  CATEGORIES,
+  identificationPolicyid,
+  NETWORK,
+  PROVIDER,
+} from "@/config";
 import {
   CETMINTER,
   ConfigDatumHolderValidator,
@@ -48,17 +53,17 @@ export async function Burn(walletConnection: Cardano, qty: bigint) {
       paymentCredentialOf(userScript),
       stakeCredentialOf(address)
     );
-
     const utxos = await lucid.utxosAt(userScriptAddress);
-
+    console.log(1);
     const { outputTokens, cetBurn, cotBurn } = await cet_cot(
       utxos,
       qty,
       cetPolicyId,
       cotPolicyId
     );
+    console.log("addressess"); //currently fixing this issue
     const refutxo = await refUtxo(lucid);
-
+    console.log(3);
     const cetBurnRedeemer: BurnRedeemer = { cot_policyId: cotPolicyId };
     const cotBurnRedeemer: KarbonRedeemerMint = {
       action: "Burn",
@@ -68,6 +73,7 @@ export async function Burn(walletConnection: Cardano, qty: bigint) {
         output_index: BigInt(utxos[0].outputIndex),
       },
     };
+    console.log(4);
     const tx = await lucid
       .newTx()
       .readFrom(refutxo)
@@ -81,7 +87,7 @@ export async function Burn(walletConnection: Cardano, qty: bigint) {
       .attach.MintingPolicy(cotMintingPolicy)
       .attach.Script(userScriptValidator)
       .complete();
-
+    console.log(5);
     const signed = await tx.sign.withWallet().complete();
     const txHash = await signed.submit();
     console.log("txHash: ", txHash);
@@ -133,13 +139,6 @@ export async function CotFromUserToScript(walletConnection: Cardano) {
   }
 }
 ////////////////////////////////
-const CATEGORIES = [
-  "forest",
-  "water",
-  "air",
-  "forestration",
-  "algae treatment",
-];
 
 export default function ConfigDatumHolder() {
   const [WalletConnection] = useCardano();
