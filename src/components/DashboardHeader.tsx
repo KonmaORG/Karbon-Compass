@@ -71,7 +71,7 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [selectedNetwork, setSelectedNetwork] =
-    useState<BlockchainNetwork>("cardano");
+    useState<BlockchainNetwork>("ethereum");
 
   useEffect(() => {
     const installedWallets: CardanoWallet[] = [];
