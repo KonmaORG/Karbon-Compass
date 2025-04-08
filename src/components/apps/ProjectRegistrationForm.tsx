@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { X, FileCheck, Upload, Paperclip } from "lucide-react";
 import { ProjectDocument } from "./RegistryApp";
+import { CATEGORIES } from "@/config";
 
 type ProjectFormValues = {
   name: string;
@@ -190,22 +192,14 @@ const ProjectRegistrationForm = ({
                   <SelectValue placeholder="Select a project type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="reforestation">Reforestation</SelectItem>
-                  <SelectItem value="renewable-energy">
-                    Renewable Energy
-                  </SelectItem>
-                  <SelectItem value="methane-capture">
-                    Methane Capture
-                  </SelectItem>
-                  <SelectItem value="soil-carbon">
-                    Soil Carbon Sequestration
-                  </SelectItem>
-                  <SelectItem value="conservation">
-                    Forest Conservation
-                  </SelectItem>
-                  <SelectItem value="blue-carbon">
-                    Blue Carbon (Coastal)
-                  </SelectItem>
+                  {CATEGORIES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                  {/* <SelectItem key={"type"} value={"type"}>
+                    {"type"}
+                  </SelectItem> */}
                 </SelectContent>
               </Select>
             </div>

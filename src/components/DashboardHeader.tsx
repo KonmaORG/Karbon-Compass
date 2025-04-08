@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { AppType } from "@/component_pages/Dashboard";
 import Link from "next/link";
-import { CardanoWallet } from "@/types/cardano";
+import { CardanoWallet } from "@/types/cardano/cardano";
 import { useCardano } from "@/context/cardanoContext";
 import { hexToBech32 } from "@/lib/utils";
 interface DashboardHeaderProps {

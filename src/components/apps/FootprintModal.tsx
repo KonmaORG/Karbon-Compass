@@ -1,7 +1,15 @@
+"use client";
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, Leaf, TrendingDown } from "lucide-react";
@@ -17,21 +25,32 @@ type FootprintModalProps = {
   };
 };
 
-const FootprintModal = ({ open, onOpenChange, action, offsetData }: FootprintModalProps) => {
+const FootprintModal = ({
+  open,
+  onOpenChange,
+  action,
+  offsetData,
+}: FootprintModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [offsetAmount, setOffsetAmount] = useState(1);
-  
+
   const handleComplete = () => {
     setIsLoading(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       onOpenChange(false);
-      toast.success(`${action === "offset" ? "Emissions offset successfully!" : "Offset credits purchased!"}`);
+      toast.success(
+        `${
+          action === "offset"
+            ? "Emissions offset successfully!"
+            : "Offset credits purchased!"
+        }`
+      );
     }, 1500);
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -50,18 +69,19 @@ const FootprintModal = ({ open, onOpenChange, action, offsetData }: FootprintMod
             )}
           </DialogTitle>
           <DialogDescription>
-            {action === "offset" 
+            {action === "offset"
               ? "Neutralize your carbon footprint with verified carbon credits"
-              : "Purchase carbon credits to offset your emissions"
-            }
+              : "Purchase carbon credits to offset your emissions"}
           </DialogDescription>
         </DialogHeader>
-        
+
         {action === "offset" ? (
           <div className="space-y-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Your Carbon Footprint</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Your Carbon Footprint
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -73,20 +93,41 @@ const FootprintModal = ({ open, onOpenChange, action, offsetData }: FootprintMod
                 </div>
               </CardContent>
             </Card>
-            
+
             <div className="space-y-4">
-              <h3 className="text-sm font-medium">Recommended Offset Projects</h3>
+              <h3 className="text-sm font-medium">
+                Recommended Offset Projects
+              </h3>
               {[
-                { name: "Reforestation in Brazil", price: 12.50, efficiency: "High" },
-                { name: "Solar Farm in India", price: 10.75, efficiency: "Medium" },
-                { name: "Wind Energy in Denmark", price: 15.25, efficiency: "High" },
+                {
+                  name: "Reforestation in Brazil",
+                  price: 12.5,
+                  efficiency: "High",
+                },
+                {
+                  name: "Solar Farm in India",
+                  price: 10.75,
+                  efficiency: "Medium",
+                },
+                {
+                  name: "Wind Energy in Denmark",
+                  price: 15.25,
+                  efficiency: "High",
+                },
               ].map((project, i) => (
-                <div key={i} className="flex items-center justify-between p-3 border rounded-md hover:bg-muted/50 cursor-pointer">
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 border rounded-md hover:bg-muted/50 cursor-pointer"
+                >
                   <div>
                     <div className="font-medium">{project.name}</div>
-                    <div className="text-sm text-muted-foreground">${project.price} per ton • {project.efficiency} impact</div>
+                    <div className="text-sm text-muted-foreground">
+                      ${project.price} per ton • {project.efficiency} impact
+                    </div>
                   </div>
-                  <Button size="sm" className="bg-ocean-600 hover:bg-ocean-700">Select</Button>
+                  <Button size="sm" className="bg-ocean-600 hover:bg-ocean-700">
+                    Select
+                  </Button>
                 </div>
               ))}
             </div>
@@ -95,30 +136,40 @@ const FootprintModal = ({ open, onOpenChange, action, offsetData }: FootprintMod
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Offset Project</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Offset Project
+                </p>
                 <p>{offsetData.name}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Price</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Price
+                </p>
                 <p>${offsetData.price.toFixed(2)} per ton</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Location</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Location
+                </p>
                 <p>{offsetData.location}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Amount to Offset</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Amount to Offset
+                </p>
                 <div className="flex items-center mt-1">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
-                    onClick={() => setOffsetAmount(Math.max(1, offsetAmount - 1))}
+                    onClick={() =>
+                      setOffsetAmount(Math.max(1, offsetAmount - 1))
+                    }
                   >
                     -
                   </Button>
                   <span className="mx-3">{offsetAmount} tons</span>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => setOffsetAmount(offsetAmount + 1)}
                   >
@@ -127,7 +178,7 @@ const FootprintModal = ({ open, onOpenChange, action, offsetData }: FootprintMod
                 </div>
               </div>
             </div>
-            
+
             <div className="border rounded-md p-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Quantity</span>
@@ -143,21 +194,25 @@ const FootprintModal = ({ open, onOpenChange, action, offsetData }: FootprintMod
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Processing fee</span>
-                <span>${(offsetData.price * offsetAmount * 0.03).toFixed(2)}</span>
+                <span>
+                  ${(offsetData.price * offsetAmount * 0.03).toFixed(2)}
+                </span>
               </div>
               <div className="border-t pt-2 flex justify-between items-center font-bold">
                 <span>Total</span>
-                <span>${(offsetData.price * offsetAmount * 1.03).toFixed(2)}</span>
+                <span>
+                  ${(offsetData.price * offsetAmount * 1.03).toFixed(2)}
+                </span>
               </div>
             </div>
           </div>
         ) : null}
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
+          <Button
             className="bg-ocean-600 hover:bg-ocean-700"
             onClick={handleComplete}
             isLoading={isLoading}
