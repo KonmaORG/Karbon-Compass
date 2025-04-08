@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +62,7 @@ const ProjectRegistrationForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (field: keyof ProjectFormValues, value: string) => {
     setFormValues((prev) => ({
@@ -91,31 +92,69 @@ const ProjectRegistrationForm = ({
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("click", e.target.files);
-    if (e.target.files && e.target.files.length > 0) {
-      handleFiles(e.target.files);
+    console.log("File change triggered", e.target.files);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFiles(files);
+    } else {
+      console.log("No files selected");
     }
   };
-
   const handleFiles = (files: FileList) => {
-    // Convert FileList to array and process
-    Array.from(files).forEach((file) => {
-      // In a real app, you would upload files to a server here
-      const newDocument: ProjectDocument = {
+    try {
+      const newDocs = Array.from(files).map((file) => ({
         id: Date.now() + Math.floor(Math.random() * 1000),
         name: file.name,
         type: file.type,
-        url: URL.createObjectURL(file), // Create a temporary URL for preview
+        url: URL.createObjectURL(file),
         uploadedAt: new Date(),
-      };
+      }));
 
-      setDocuments((prevDocs) => [...prevDocs, newDocument]);
-      toast.success(`File ${file.name} added`);
-    });
+      setDocuments((prevDocs) => [...prevDocs, ...newDocs]);
+      newDocs.forEach((doc) => toast.success(`File ${doc.name} added`));
+    } catch (error) {
+      console.error("Error processing files:", error);
+      toast.error("Error uploading files");
+    }
   };
 
   const removeDocument = (docId: number) => {
     setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
+  };
+
+  const calculateCombinedHash = async (
+    documents: ProjectDocument[]
+  ): Promise<string> => {
+    try {
+      // Get individual hashes
+      const individualHashes = await Promise.all(
+        documents.map(async (doc) => {
+          const file = await fetch(doc.url).then((res) => res.blob()); // Convert URL back to file-like object
+          const buffer = await file.arrayBuffer();
+          const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        })
+      );
+
+      // Combine all hashes into a single string
+      const combinedString = individualHashes.join("");
+
+      // Create a final hash from the combined string
+      const encoder = new TextEncoder();
+      const combinedBuffer = encoder.encode(combinedString);
+      const finalHashBuffer = await crypto.subtle.digest(
+        "SHA-256",
+        combinedBuffer
+      );
+      const finalHashArray = Array.from(new Uint8Array(finalHashBuffer));
+      return finalHashArray
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    } catch (error) {
+      console.error("Error calculating combined hash:", error);
+      throw error;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,9 +165,10 @@ const ProjectRegistrationForm = ({
       // Simulate API call with timeout
       // await new Promise((resolve) => setTimeout(resolve, 1000));
       //call cardano register function here
+      const documentsHash = await calculateCombinedHash(documents);
       submitProject(
         walletConnection,
-        documents,
+        documentsHash,
         formValues.type,
         formValues.name
       );
@@ -269,9 +309,15 @@ const ProjectRegistrationForm = ({
                 id="file-upload"
                 multiple
                 onChange={handleFileChange}
+                accept="*" // Optional: specify accepted file types if needed
               />
               <Label htmlFor="file-upload" className="mt-4 inline-block">
-                <Button type="button" variant="outline" size="sm">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <Upload className="mr-2 h-4 w-4" /> Browse Files
                 </Button>
               </Label>

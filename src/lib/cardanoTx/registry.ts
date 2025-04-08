@@ -5,6 +5,7 @@ import {
   Data,
   fromHex,
   fromText,
+  Lucid,
   mintingPolicyToId,
   paymentCredentialOf,
   stakeCredentialOf,
@@ -25,7 +26,7 @@ import {
   KarbonRedeemerSpend,
 } from "@/types/cardano/redeemer";
 import { AssetClass, KarbonDatum } from "@/types/cardano/datum";
-import { SIGNER1, SIGNER2, SIGNER3 } from "@/config";
+import { NETWORK, PROVIDER, SIGNER1, SIGNER2, SIGNER3 } from "@/config";
 import { handleError } from "../utils";
 
 export async function submit(tx: TxSignBuilder) {
@@ -40,9 +41,12 @@ export async function submitProject(
   category: string,
   projectTitle: string
 ) {
-  const { lucid, address } = walletConnection;
+  const { wallet, address } = walletConnection;
   try {
-    if (!lucid || !address) throw new Error("Wallet Not Connected!");
+    if (!wallet || !address) throw new Error("Wallet Not Connected!");
+    const walletAPI = await wallet.enable();
+    const lucid = await Lucid(PROVIDER, NETWORK);
+    lucid.selectWallet.fromAPI(walletAPI);
 
     // const validatorContractAddress = getAddress(ValidatorContract);
     // const mintingValidator: Validator = ValidatorMinter();
