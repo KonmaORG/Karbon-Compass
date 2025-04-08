@@ -310,6 +310,7 @@ const ProjectRegistrationForm = ({
                 multiple
                 onChange={handleFileChange}
                 accept="*" // Optional: specify accepted file types if needed
+                ref={fileInputRef}
               />
               <Label htmlFor="file-upload" className="mt-4 inline-block">
                 <Button
