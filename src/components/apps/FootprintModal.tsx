@@ -275,7 +275,7 @@ import { CreditCard, Leaf, TrendingDown } from "lucide-react";
 import { Input } from "@/components/ui/input"; // Make sure to import Input component
 
 import { useCardano } from "@/context/cardanoContext";
-import { CetMinter } from "@/lib/cardanoTx/emission";
+import { Burn, CetMinter } from "@/lib/cardanoTx/emission";
 import { fromText } from "@lucid-evolution/lucid";
 
 type FootprintModalProps = {
@@ -333,6 +333,11 @@ const FootprintModal = ({
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function BurnClient() {
+    const result = await Burn(walletConnection, BigInt(parseInt(qty)));
+    console.log(result);
   }
 
   return (
@@ -509,10 +514,11 @@ const FootprintModal = ({
             </Button>
             <Button
               className="bg-ocean-600 hover:bg-ocean-700"
-              onClick={handleComplete}
+              onClick={BurnClient}
               disabled={isLoading}
             >
-              {action === "offset" ? "Offset Emissions" : "Complete Purchase"}
+              {/* {action === "offset" ? "Offset Emissions" : "Complete Purchase"} */}
+              Offset Emission
             </Button>
           </DialogFooter>
         </DialogContent>
