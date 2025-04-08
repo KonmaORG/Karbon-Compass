@@ -62,7 +62,27 @@ export const blockfrost = {
     console.log(allUtxos);
     return allUtxos; // Return merged array of all UTXOs
   },
+  getLatestTime: async () => {
+    const url = `${BF_URL}/blocks/latest`;
 
+    try {
+      const assetResponse = await fetch(url, {
+        method: "GET",
+        headers: {
+          project_id: BF_PID,
+        },
+      });
+
+      if (!assetResponse.ok) {
+        throw new Error(`Error: ${assetResponse.statusText}`);
+      }
+
+      const result = await assetResponse.json();
+      return result.time * 1000;
+    } catch (err: any) {
+      return err.message;
+    }
+  },
   getUtxosWithUnit: async (address: string, unit: Unit) => {
     const allUtxos: any[] = []; // Array to store all UTXOs
     let page = 1; // Start from page 1
