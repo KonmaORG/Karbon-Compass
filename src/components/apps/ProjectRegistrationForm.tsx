@@ -197,9 +197,6 @@ const ProjectRegistrationForm = ({
                       {type}
                     </SelectItem>
                   ))}
-                  {/* <SelectItem key={"type"} value={"type"}>
-                    {"type"}
-                  </SelectItem> */}
                 </SelectContent>
               </Select>
             </div>

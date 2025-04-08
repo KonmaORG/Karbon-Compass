@@ -20,7 +20,7 @@ export default function RootLayout({
         <CardanoProvider>
           <QueryClientProvider client={queryClient}>
             <TooltipProvider>
-              <Toaster />
+              {/* <Toaster /> */}
               <Sonner />
               <Navbar />
               {children}
