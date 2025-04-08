@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -46,6 +46,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { blockfrost } from "@/lib/blockfrost";
+import { NETWORK, PROVIDER, VALIDATOR_CONTRACT_ADDRESS } from "@/config";
+import {
+  Data,
+  Lucid,
+  mintingPolicyToId,
+  toText,
+  UTxO,
+  Validator,
+  validatorToAddress,
+} from "@lucid-evolution/lucid";
+import { ValidatorContract, ValidatorMinter } from "@/config/scripts/scripts";
+import { KarbonDatum } from "@/types/cardano/datum";
+import { Provider } from "@radix-ui/react-toast";
 
 export type VerificationStatus =
   | "pending"
@@ -87,6 +101,7 @@ const RegistryApp = () => {
   >(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [cardanoProjects, setCardanoProjects] = useState<UTxO[]>([]);
   const [projects, setProjects] = useState<Project[]>([
     {
       id: 1,
@@ -328,6 +343,37 @@ const RegistryApp = () => {
       p.verificationStatus === "pending" || p.verificationStatus === "in_review"
   );
 
+  useEffect(() => {
+    const fetchUtxos = async () => {
+      const validator: Validator = ValidatorContract();
+      const validatorAddress = validatorToAddress(NETWORK, validator);
+      const PID_MINTER = mintingPolicyToId(ValidatorMinter());
+      const lucid = await Lucid(PROVIDER, NETWORK);
+      const utxos = await lucid.utxosAt(validatorAddress);
+      const filteredUtxos = utxos.filter((utxo) => {
+        const assets = utxo.assets;
+        return Object.keys(assets).some((key) => key.startsWith(PID_MINTER));
+      });
+      // .map(async (utxo) => {
+      //   let decodedDatum: KarbonDatum | null = null;
+      //   try {
+      //     // Convert hex string to buffer and decode CBOR
+      //     const data = await lucid.datumOf(utxo);
+      //     const decodedDatum = Data.castFrom(data, KarbonDatum);
+      //   } catch (error) {
+      //     console.error("Error decoding datum:", error);
+      //   }
+
+      //   return {
+      //     ...utxo,
+      //     Datum: decodedDatum, // Add the decoded datum field
+      //   };
+      // });
+      console.log(filteredUtxos, "filteredUtxos");
+      setCardanoProjects(filteredUtxos);
+    };
+    fetchUtxos();
+  }, []);
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -460,32 +506,15 @@ const RegistryApp = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProjects.map((project) => (
-                <TableRow
-                  key={project.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                >
-                  <TableCell>{project.name}</TableCell>
-                  <TableCell className="capitalize">
-                    {project.type.replace("-", " ")}
-                  </TableCell>
-                  <TableCell>{project.location}</TableCell>
-                  <TableCell>{project.credits.toLocaleString()}</TableCell>
-                  <TableCell>
-                    {getVerificationStatusBadge(project.verificationStatus)}
-                  </TableCell>
-                  <TableCell>{project.documents.length || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedProject(project)}
-                    >
-                      Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
+              {cardanoProjects.map((project, index) => (
+                <ProjectRows
+                  key={index}
+                  project={project}
+                  setSelectedProject={setSelectedProject}
+                  mockProject={filteredProjects[index]}
+                />
               ))}
+
               {filteredProjects.length === 0 && (
                 <TableRow>
                   <TableCell
@@ -880,3 +909,49 @@ const RegistryApp = () => {
 };
 
 export default RegistryApp;
+
+interface ProjectRowsProps {
+  project: UTxO;
+  setSelectedProject: Dispatch<SetStateAction<Project | null>>;
+  mockProject: Project;
+}
+
+function ProjectRows({
+  project,
+  setSelectedProject,
+  mockProject,
+}: ProjectRowsProps) {
+  const [datum, setDatum] = useState<KarbonDatum | undefined>(undefined);
+
+  useEffect(() => {
+    async function fetchDatum() {
+      const lucid = await Lucid(PROVIDER, NETWORK);
+      const data = await lucid.datumOf(project);
+      const datum = Data.castFrom(data, KarbonDatum);
+      setDatum(datum);
+    }
+    fetchDatum();
+  }, []);
+
+  return (
+    datum && (
+      <TableRow className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+        <TableCell> {toText(datum.asset_name)}</TableCell>
+        <TableCell className="capitalize">{toText(datum.categories)}</TableCell>
+        <TableCell>{"location"}</TableCell>
+        <TableCell>{"credits"}</TableCell>
+        <TableCell>{"verificationStatus"}</TableCell>
+        <TableCell>{"documents"}</TableCell>
+        <TableCell className="text-right">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedProject(mockProject)}
+          >
+            Details
+          </Button>
+        </TableCell>
+      </TableRow>
+    )
+  );
+}

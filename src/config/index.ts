@@ -49,3 +49,6 @@ export const COTPOLICYID: PolicyId =
   "c51587c8961294b98b440c30ec96cdf9b4d7bde97a960c7cb62f3c78";
 export const identificationPolicyid = process.env
   .NEXT_PUBLIC_IDENTIFICATION_PID as PolicyId;
+
+export const VALIDATOR_CONTRACT_ADDRESS =
+  "addr_test1wp5dde7cz3rtkxmjaap8tyv9hwnwdphuxyg7aw0f4a46l0sj6lnxe";
