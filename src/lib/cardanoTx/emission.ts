@@ -54,7 +54,7 @@ export async function Burn(walletConnection: Cardano, qty: bigint) {
       stakeCredentialOf(address)
     );
     const utxos = await lucid.utxosAt(userScriptAddress);
-    console.log(1);
+
     const { outputTokens, cetBurn, cotBurn } = await cet_cot(
       utxos,
       qty,
@@ -63,7 +63,7 @@ export async function Burn(walletConnection: Cardano, qty: bigint) {
     );
     console.log("addressess"); //currently fixing this issue
     const refutxo = await refUtxo(lucid);
-    console.log(3);
+
     const cetBurnRedeemer: BurnRedeemer = { cot_policyId: cotPolicyId };
     const cotBurnRedeemer: KarbonRedeemerMint = {
       action: "Burn",
@@ -73,7 +73,7 @@ export async function Burn(walletConnection: Cardano, qty: bigint) {
         output_index: BigInt(utxos[0].outputIndex),
       },
     };
-    console.log(4);
+
     const tx = await lucid
       .newTx()
       .readFrom(refutxo)
@@ -87,7 +87,7 @@ export async function Burn(walletConnection: Cardano, qty: bigint) {
       .attach.MintingPolicy(cotMintingPolicy)
       .attach.Script(userScriptValidator)
       .complete();
-    console.log(5);
+
     const signed = await tx.sign.withWallet().complete();
     const txHash = await signed.submit();
     console.log("txHash: ", txHash);
@@ -267,11 +267,11 @@ export async function CetMinter(walletConnection: Cardano, datum: CETDatum) {
       paymentCredentialOf(userScript),
       stakeCredentialOf(address)
     );
-    console.log("userScriptAddress");
+
     const reedemer = Data.to(datum, CETDatum);
-    console.log("redeer", reedemer);
+
     const utxo = (await lucid.utxosAt(address))[0];
-    console.log("utxo", utxo);
+
     const tx = await lucid
       .newTx()
       .mintAssets(tokens, reedemer)
