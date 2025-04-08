@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -12,7 +12,60 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BadgeDollarSign, CreditCard, FileText, Timer } from "lucide-react";
+import {
+  fromAbsolute,
+  getLocalTimeZone,
+  today,
+  ZonedDateTime,
+} from "@internationalized/date";
+import { CampaignDatum } from "@/types/cardano/datum";
+import {
+  fromText,
+  paymentCredentialOf,
+  stakeCredentialOf,
+} from "@lucid-evolution/lucid";
+/////
+export function camapignCreate() {
+  const [isSubmittingTx, setIsSubmittingTx] = useState(false);
+  const [campaignName, setCampaignName] = useState("");
+  const [campaignGoal, setCampaignGoal] = useState("");
+  const timezone = getLocalTimeZone();
+  const [numberOfMilestones, setNumberOfMilestones] = useState<number>(1);
+  const [fractions, setFractions] = useState<number>(0);
 
+  const timeNow = fromAbsolute(Date.now(), timezone);
+  const [campaignDeadline, setCampaignDeadline] =
+    useState<ZonedDateTime | null>(timeNow);
+
+  const handleCreateCampaignClick = useCallback(async () => {
+    if (!campaignDeadline || !address || !lucid) return;
+    setIsSubmittingTx(true);
+
+    const deadline = BigInt(campaignDeadline.toDate().getTime());
+    const datum: CampaignDatum = {
+      name: fromText(campaignName),
+      goal: toLovelace(+campaignGoal),
+      deadline: deadline,
+      creator: [
+        paymentCredentialOf(address).hash,
+        stakeCredentialOf(address).hash,
+      ],
+      milestone: new Array(numberOfMilestones).fill(false),
+      state: "Initiated",
+      fraction: BigInt(fractions),
+    };
+    await CreateCampaign(lucid, address, datum, description);
+    setIsSubmittingTx(false);
+  }, [
+    campaignName,
+    campaignGoal,
+    campaignDeadline,
+    fractions,
+    description,
+    numberOfMilestones,
+  ]);
+}
+//////
 type CrowdfundingModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
