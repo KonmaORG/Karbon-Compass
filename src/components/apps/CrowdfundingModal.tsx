@@ -88,7 +88,7 @@ const CrowdfundingModal = ({
       const datum: CampaignDatum = {
         name: fromText(projectName || ""),
         goal: toLovelace(projectGoal || 0),
-        deadline: deadline,
+        deadline: deadline + 100000n, //temporary fix for deadline till date picker works
         creator: [
           paymentCredentialOf(address).hash,
           stakeCredentialOf(address).hash,
@@ -113,7 +113,7 @@ const CrowdfundingModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[550px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {action === "submit" ? (

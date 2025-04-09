@@ -132,12 +132,9 @@ async function FindRefUtxo(lucid: LucidEvolution, address: string) {
 async function submit(tx: TxSignBuilder) {
   try {
     const sign = await tx.sign.withWallet().complete();
-    console.log("signed");
     const txHash = await sign.submit();
-    console.log("submitted");
     console.log("tx", txHash);
   } catch (e: any) {
-    console.log("error", e);
     console.log("error", JSON.stringify(e));
     throw e;
   }
