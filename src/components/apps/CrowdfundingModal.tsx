@@ -24,48 +24,12 @@ import {
   paymentCredentialOf,
   stakeCredentialOf,
 } from "@lucid-evolution/lucid";
-/////
-export function camapignCreate() {
-  const [isSubmittingTx, setIsSubmittingTx] = useState(false);
-  const [campaignName, setCampaignName] = useState("");
-  const [campaignGoal, setCampaignGoal] = useState("");
-  const timezone = getLocalTimeZone();
-  const [numberOfMilestones, setNumberOfMilestones] = useState<number>(1);
-  const [fractions, setFractions] = useState<number>(0);
+import { CreateCampaign } from "@/lib/cardanoTx/crowdfunding";
+import { useCardano } from "@/context/cardanoContext";
+import { toLovelace } from "@/lib/utils";
+import { DatePicker } from "@heroui/date-picker";
+import { set } from "date-fns";
 
-  const timeNow = fromAbsolute(Date.now(), timezone);
-  const [campaignDeadline, setCampaignDeadline] =
-    useState<ZonedDateTime | null>(timeNow);
-
-  const handleCreateCampaignClick = useCallback(async () => {
-    if (!campaignDeadline || !address || !lucid) return;
-    setIsSubmittingTx(true);
-
-    const deadline = BigInt(campaignDeadline.toDate().getTime());
-    const datum: CampaignDatum = {
-      name: fromText(campaignName),
-      goal: toLovelace(+campaignGoal),
-      deadline: deadline,
-      creator: [
-        paymentCredentialOf(address).hash,
-        stakeCredentialOf(address).hash,
-      ],
-      milestone: new Array(numberOfMilestones).fill(false),
-      state: "Initiated",
-      fraction: BigInt(fractions),
-    };
-    await CreateCampaign(lucid, address, datum, description);
-    setIsSubmittingTx(false);
-  }, [
-    campaignName,
-    campaignGoal,
-    campaignDeadline,
-    fractions,
-    description,
-    numberOfMilestones,
-  ]);
-}
-//////
 type CrowdfundingModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -89,22 +53,62 @@ const CrowdfundingModal = ({
 }: CrowdfundingModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [investmentAmount, setInvestmentAmount] = useState(100);
+  const [projectName, setProjectName] = useState<string>("");
+  const [projectGoal, setProjectGoal] = useState<number>(0);
+  const [projectDescription, setProjectDescription] = useState<string>("");
+  const [numberOfMilestones, setNumberOfMilestones] = useState<number>(1);
+  const [fractions, setFractions] = useState<number>(0);
+  const timezone = getLocalTimeZone();
+  const timeNow = fromAbsolute(Date.now(), timezone);
+  const [campaignDeadline, setCampaignDeadline] =
+    useState<ZonedDateTime | null>(timeNow);
 
-  const handleAction = () => {
+  const [walletConnection] = useCardano();
+  const { address } = walletConnection;
+  const handleAction = async () => {
+    if (!address) {
+      toast.error("Wallet not connected!");
+      return;
+    }
     setIsLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      onOpenChange(false);
-      toast.success(
-        `${
-          action === "submit"
-            ? "Project submitted for review!"
-            : "Investment completed successfully!"
-        }`
-      );
-    }, 1500);
+    if (action === "submit") {
+      if (
+        !campaignDeadline ||
+        !projectName ||
+        !projectGoal ||
+        !fractions ||
+        !numberOfMilestones ||
+        !projectDescription
+      ) {
+        toast.error("Required fields are missing!");
+        setIsLoading(false);
+        return;
+      }
+      const deadline = BigInt(campaignDeadline.toDate().getTime());
+      const datum: CampaignDatum = {
+        name: fromText(projectName || ""),
+        goal: toLovelace(projectGoal || 0),
+        deadline: deadline,
+        creator: [
+          paymentCredentialOf(address).hash,
+          stakeCredentialOf(address).hash,
+        ],
+        milestone: new Array(numberOfMilestones).fill(false),
+        state: "Initiated",
+        fraction: BigInt(fractions),
+      };
+      await CreateCampaign(walletConnection, datum, projectDescription);
+    }
+    if (action === "invest") {
+      if (!investmentAmount) {
+        toast.error("Investment amount is required!");
+        setIsLoading(false);
+        return;
+      }
+      // Handle investment logic here
+      console.log("Investment Amount:", investmentAmount);
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -137,7 +141,12 @@ const CrowdfundingModal = ({
               <label htmlFor="project-name" className="text-sm font-medium">
                 Project Name
               </label>
-              <Input id="project-name" placeholder="Enter your project name" />
+              <Input
+                id="project-name"
+                placeholder="Enter your project name"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -181,28 +190,60 @@ const CrowdfundingModal = ({
                   type="number"
                   min="1000"
                   placeholder="50000"
+                  value={projectGoal}
+                  onChange={(e) => setProjectGoal(Number(e.target.value))}
                 />
               </div>
 
               <div className="space-y-2">
-                <label
-                  htmlFor="project-duration"
-                  className="text-sm font-medium"
-                >
-                  Funding Duration
-                </label>
-                <select
-                  id="project-duration"
-                  className="w-full p-2 border rounded-md bg-background"
-                >
-                  <option value="15">15 days</option>
-                  <option value="30">30 days</option>
-                  <option value="45">45 days</option>
-                  <option value="60">60 days</option>
-                </select>
+                {/* Campaign Deadline */}
+                <DatePicker
+                  hideTimeZone
+                  showMonthAndYearPickers
+                  granularity="minute"
+                  hourCycle={24}
+                  defaultValue={timeNow}
+                  label="Set Deadline"
+                  minValue={timeNow}
+                  onChange={setCampaignDeadline}
+                />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label
+                  htmlFor="numberOfMilestones"
+                  className="text-sm font-medium"
+                >
+                  Number of Milestones
+                </label>
+                <Input
+                  id="numberOfMilestones"
+                  type="number"
+                  value={numberOfMilestones.toString()}
+                  onChange={(e) => {
+                    setNumberOfMilestones(Number(e.target.value));
+                    console.log(numberOfMilestones, "changed");
+                  }}
+                  placeholder="Enter number"
+                />
+              </div>
 
+              <div className="space-y-2">
+                <label htmlFor="fractions" className="text-sm font-medium">
+                  No of Fractions
+                </label>
+                <Input
+                  id="fractions"
+                  type="number"
+                  value={fractions.toString()}
+                  onChange={(e) => {
+                    setFractions(Number(e.target.value));
+                  }}
+                  placeholder="Enter number of fractions"
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <label htmlFor="project-summary" className="text-sm font-medium">
                 Project Summary
@@ -212,6 +253,8 @@ const CrowdfundingModal = ({
                 rows={3}
                 className="w-full p-2 border rounded-md bg-background"
                 placeholder="Brief description of your project..."
+                value={projectDescription}
+                onChange={(e) => setProjectDescription(e.target.value)}
               ></textarea>
             </div>
 

@@ -26,6 +26,13 @@ export function hexToBech32(data: string) {
   return bech32Address;
 }
 
+export function toAda(value: BigInt) {
+  return Number(value) / 1_000_000;
+}
+export function toLovelace(value: number) {
+  return BigInt(value * 1_000_000);
+}
+
 export function handleError(error: any) {
   const { info, message } = error;
 
