@@ -167,9 +167,14 @@ export async function ApproveCampaign(
   datum: CampaignDatum,
   metadata: MetadataType
 ) {
-  const { lucid, address } = WalletConnection;
+  const { wallet, address } = WalletConnection;
+
   try {
-    if (!address || !lucid) throw Error("Wallet not Conencted");
+    if (!wallet || !address) throw new Error("Wallet Not Connected!");
+    const walletAPI = await wallet.enable();
+    const lucid = await Lucid(PROVIDER, NETWORK);
+    lucid.selectWallet.fromAPI(walletAPI);
+
     // oref
     const oref = new Constr(0, [
       String(metadata.hash),

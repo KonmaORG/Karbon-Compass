@@ -25,6 +25,7 @@ import {
   Data,
   Lucid,
   mintingPolicyToId,
+  toText,
   Validator,
   validatorToAddress,
 } from "@lucid-evolution/lucid";
@@ -35,6 +36,8 @@ import { useCardano } from "@/context/cardanoContext";
 import { blockfrost } from "@/lib/blockfrost";
 import { getTimeRemaining, toAda } from "@/lib/utils";
 import { set } from "date-fns";
+import { ApproveCampaign } from "@/lib/cardanoTx/crowdfunding";
+import exp from "constants";
 
 const CrowdfundingApp = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -235,6 +238,11 @@ function CampaignCard({ token, qty, datum }: CampaignCardProps) {
   const goal = toAda(datum.goal);
 
   const imageUrl = metadata?.image.replace("ipfs://", "https://ipfs.io/ipfs/");
+  const expired = getTimeRemaining(Number(datum.deadline)) === "Time expired";
+  const handleApprove = async () => {
+    if (!metadata) return;
+    ApproveCampaign(WalletConnection, datum, metadata);
+  };
   return (
     metadata && (
       <>
@@ -286,9 +294,27 @@ function CampaignCard({ token, qty, datum }: CampaignCardProps) {
                 </div>
                 <Button
                   className="bg-ocean-600 hover:bg-ocean-700"
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={
+                    datum.state === "Running"
+                      ? () => setIsModalOpen(true)
+                      : datum.state === "Initiated"
+                      ? handleApprove
+                      : undefined
+                  }
+                  disabled={
+                    datum.state === "Finished" ||
+                    datum.state === "Cancelled" ||
+                    expired
+                  }
                 >
-                  Invest Now
+                  {expired
+                    ? "Time expired"
+                    : datum.state === "Running"
+                    ? "Invest Now"
+                    : datum.state === "Initiated"
+                    ? "Approve"
+                    : datum.state === "Finished" ||
+                      (datum.state === "Cancelled" && datum.state)}
                 </Button>
               </div>
             </div>
