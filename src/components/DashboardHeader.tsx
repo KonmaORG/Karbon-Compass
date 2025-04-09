@@ -1,10 +1,8 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, User, Settings, Wallet, Globe } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
-import { AppType } from '@/pages/Dashboard';
+import { useEffect, useState } from "react";
+import { Bell, User, Settings, Wallet, Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,111 +18,223 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import { AppType } from "@/component_pages/Dashboard";
+import Link from "next/link";
+import { CardanoWallet } from "@/types/cardano/cardano";
+import { useCardano } from "@/context/cardanoContext";
+import { hexToBech32 } from "@/lib/utils";
+import { NETWORK, PROVIDER } from "@/config";
+import { Lucid } from "@lucid-evolution/lucid";
 interface DashboardHeaderProps {
   activeApp: AppType;
 }
 
-type BlockchainNetwork = 'ethereum' | 'cardano';
-type EthereumWalletType = 'MetaMask' | 'WalletConnect' | null;
-type CardanoWalletType = 'Yoroi' | 'Lace' | null;
+type BlockchainNetwork = "ethereum" | "cardano";
+type EthereumWalletType = "MetaMask" | "WalletConnect" | null;
+type CardanoWalletType = "Yoroi" | "Lace" | null;
 type WalletType = EthereumWalletType | CardanoWalletType | null;
-type UserRole = 'admin' | 'verifier' | 'user' | null;
+type UserRole = "admin" | "verifier" | "user" | null;
 
 const getAppTitle = (activeApp: AppType): string => {
   switch (activeApp) {
-    case 'overview': return 'Dashboard Overview';
-    case 'registry': return 'Carbon Registry';
-    case 'marketplace': return 'Carbon Marketplace';
-    case 'footprint': return 'Carbon Footprint Management';
-    case 'iot': return 'IoT Emissions Monitoring';
-    case 'fraud': return 'Fraud Detection & Prevention';
-    case 'corporate': return 'Corporate Sustainability Reporting';
-    case 'governance': return 'DAO Governance';
-    case 'crowdfunding': return 'Project Crowdfunding';
-    case 'educational': return 'Educational Hub';
-    default: return 'Dashboard';
+    case "overview":
+      return "Dashboard Overview";
+    case "registry":
+      return "Carbon Registry";
+    case "marketplace":
+      return "Carbon Marketplace";
+    case "footprint":
+      return "Carbon Footprint Management";
+    case "iot":
+      return "IoT Emissions Monitoring";
+    case "fraud":
+      return "Fraud Detection & Prevention";
+    case "corporate":
+      return "Corporate Sustainability Reporting";
+    case "governance":
+      return "DAO Governance";
+    case "crowdfunding":
+      return "Project Crowdfunding";
+    case "educational":
+      return "Educational Hub";
+    default:
+      return "Dashboard";
   }
 };
 
 const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
+  const [walletConnection, setWalletConnection] = useCardano();
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [walletAddress, setWalletAddress] = useState<string>('');
+  const [walletAddress, setWalletAddress] = useState<string>("");
   const [walletType, setWalletType] = useState<WalletType>(null);
+  const [cardanoWallets, setCardanoWallets] = useState<CardanoWallet[]>([]);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
-  const [selectedNetwork, setSelectedNetwork] = useState<BlockchainNetwork>('ethereum');
+  const [selectedNetwork, setSelectedNetwork] =
+    useState<BlockchainNetwork>("ethereum");
 
-  const connectWallet = async (type: WalletType) => {
-    setIsConnecting(true);
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      let mockAddress;
-      if (selectedNetwork === 'ethereum') {
-        mockAddress = `0x${Math.random().toString(16).slice(2, 12)}...${Math.random().toString(16).slice(2, 6)}`;
+  useEffect(() => {
+    const installedWallets: CardanoWallet[] = [];
+    const { cardano } = window;
+
+    for (const c in cardano) {
+      const wallet = cardano[c];
+
+      if (!wallet.apiVersion) continue;
+      installedWallets.push(wallet);
+    }
+    const updatedWallets = cardanoWallets;
+    installedWallets.forEach((provider) => {
+      const index = updatedWallets.findIndex(
+        (wallet) => wallet.name.toLowerCase() === provider.name.toLowerCase()
+      );
+      if (index !== -1) {
+        updatedWallets[index] = {
+          ...updatedWallets[index],
+          enable: provider.enable,
+        };
       } else {
-        mockAddress = `addr1${Math.random().toString(16).slice(2, 12)}...${Math.random().toString(16).slice(2, 6)}`;
+        updatedWallets.push({
+          name: provider.name,
+          enable: provider.enable,
+          icon: provider.icon,
+        });
       }
-      
+    });
+    setCardanoWallets(
+      updatedWallets.sort((a, b) => a.name.localeCompare(b.name))
+    );
+  }, []);
+  const connectWalletMock = async (type: WalletType) => {
+    setIsConnecting(true);
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      let mockAddress;
+      if (selectedNetwork === "ethereum") {
+        mockAddress = `0x${Math.random()
+          .toString(16)
+          .slice(2, 12)}...${Math.random().toString(16).slice(2, 6)}`;
+      } else {
+        mockAddress = `addr1${Math.random()
+          .toString(16)
+          .slice(2, 12)}...${Math.random().toString(16).slice(2, 6)}`;
+      }
+
       setWalletAddress(mockAddress);
       setWalletType(type);
       setIsConnected(true);
-      
-      const roleAssignment: {[key: string]: UserRole} = {
-        '0': 'admin',
-        '1': 'verifier',
-        '2': 'user',
-        '3': 'user',
-        '4': 'user',
-        '5': 'verifier',
-        '6': 'user',
-        '7': 'user',
-        '8': 'admin',
-        '9': 'verifier',
+
+      const roleAssignment: { [key: string]: UserRole } = {
+        "0": "admin",
+        "1": "verifier",
+        "2": "user",
+        "3": "user",
+        "4": "user",
+        "5": "verifier",
+        "6": "user",
+        "7": "user",
+        "8": "admin",
+        "9": "verifier",
       };
-      
-      const assignedRole = roleAssignment[mockAddress[selectedNetwork === 'ethereum' ? 2 : 5]] || 'user';
+
+      const assignedRole =
+        roleAssignment[mockAddress[selectedNetwork === "ethereum" ? 2 : 5]] ||
+        "user";
       setUserRole(assignedRole);
-      
-      toast.success(`Wallet connected: ${type} on ${selectedNetwork.charAt(0).toUpperCase() + selectedNetwork.slice(1)}`, {
-        description: `Role assigned: ${assignedRole.charAt(0).toUpperCase() + assignedRole.slice(1)}`
-      });
+
+      toast.success(
+        `Wallet connected: ${type} on ${
+          selectedNetwork.charAt(0).toUpperCase() + selectedNetwork.slice(1)
+        }`,
+        {
+          description: `Role assigned: ${
+            assignedRole.charAt(0).toUpperCase() + assignedRole.slice(1)
+          }`,
+        }
+      );
     } catch (error) {
-      toast.error('Failed to connect wallet');
-      console.error('Wallet connection error:', error);
+      toast.error("Failed to connect wallet");
+      console.error("Wallet connection error:", error);
     } finally {
       setIsConnecting(false);
     }
   };
 
+  const connectWallet = async (wallet: CardanoWallet) => {
+    setIsConnecting(true);
+    try {
+      if (selectedNetwork === "ethereum") {
+        // Cardano Wallet connection logic
+        console.log("Connecting to Ethereum network...");
+      } else {
+        const api = await wallet.enable();
+        const lucid = await Lucid(PROVIDER, NETWORK);
+        await lucid.selectWallet.fromAPI(api);
+        const address = await lucid.wallet().address();
+        const balance = parseInt(await api.getBalance());
+        console.log(address);
+        setWalletConnection((prev: any) => {
+          return { ...prev, wallet, address, balance };
+        });
+        setWalletAddress(address);
+        setWalletType(wallet.name as WalletType);
+        setIsConnected(true);
+        setUserRole("user"); // Default role for Cardano wallets
+        toast.success(
+          `Wallet connected: ${wallet.name} on ${
+            selectedNetwork.charAt(0).toUpperCase() + selectedNetwork.slice(1)
+          }`
+        );
+      }
+    } catch (error) {
+      toast.error("Failed to connect wallet");
+      console.error("Wallet connection error:", error);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
   const disconnectWallet = () => {
     setIsConnected(false);
-    setWalletAddress('');
+    setWalletAddress("");
     setWalletType(null);
     setUserRole(null);
-    toast.info('Wallet disconnected');
+    setWalletConnection((prev: any) => {
+      return {
+        ...prev,
+        wallet: undefined,
+        address: "",
+        balance: undefined,
+        pkh: undefined,
+        skh: undefined,
+      };
+    });
+    toast.info("Wallet disconnected");
   };
 
   const handleNetworkChange = (network: BlockchainNetwork) => {
     if (isConnected) {
       disconnectWallet();
-      toast.info(`Switched to ${network.charAt(0).toUpperCase() + network.slice(1)} network`);
+      toast.info(
+        `Switched to ${
+          network.charAt(0).toUpperCase() + network.slice(1)
+        } network`
+      );
     }
     setSelectedNetwork(network);
   };
 
   const getRoleBadgeColor = (role: UserRole) => {
     switch (role) {
-      case 'admin':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case 'verifier':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'user':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case "admin":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "verifier":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "user":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
     }
   };
 
@@ -133,13 +243,19 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
   };
 
   const getNetworkWallets = () => {
-    if (selectedNetwork === 'ethereum') {
+    if (selectedNetwork === "ethereum") {
       return (
         <>
-          <DropdownMenuItem disabled={isConnecting} onClick={() => connectWallet('MetaMask')}>
+          <DropdownMenuItem
+            disabled={isConnecting}
+            onClick={() => connectWalletMock("MetaMask")}
+          >
             MetaMask
           </DropdownMenuItem>
-          <DropdownMenuItem disabled={isConnecting} onClick={() => connectWallet('WalletConnect')}>
+          <DropdownMenuItem
+            disabled={isConnecting}
+            onClick={() => connectWalletMock("WalletConnect")}
+          >
             WalletConnect
           </DropdownMenuItem>
         </>
@@ -147,12 +263,15 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
     } else {
       return (
         <>
-          <DropdownMenuItem disabled={isConnecting} onClick={() => connectWallet('Yoroi')}>
-            Yoroi
-          </DropdownMenuItem>
-          <DropdownMenuItem disabled={isConnecting} onClick={() => connectWallet('Lace')}>
-            Lace
-          </DropdownMenuItem>
+          {cardanoWallets.map((wallet) => (
+            <DropdownMenuItem
+              key={wallet.name}
+              disabled={isConnecting}
+              onClick={() => connectWallet(wallet)}
+            >
+              {wallet.name}
+            </DropdownMenuItem>
+          ))}
         </>
       );
     }
@@ -178,10 +297,12 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
               className="w-[200px] lg:w-[300px]"
             />
           </div>
-          
+
           <Select
             value={selectedNetwork}
-            onValueChange={(value) => handleNetworkChange(value as BlockchainNetwork)}
+            onValueChange={(value) =>
+              handleNetworkChange(value as BlockchainNetwork)
+            }
           >
             <SelectTrigger className="w-[130px]">
               <div className="flex items-center gap-2">
@@ -194,53 +315,78 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
               <SelectItem value="cardano">Cardano</SelectItem>
             </SelectContent>
           </Select>
-          
+
           {isConnected ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
                   <Wallet size={16} />
-                  <span className="hidden sm:inline-block text-xs">{walletAddress}</span>
-                  <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(userRole)}`}>
+                  <span className="hidden sm:inline-block text-xs">
+                    {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                  </span>
+                  <span
+                    className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(
+                      userRole
+                    )}`}
+                  >
                     {userRole}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Wallet Connected</DropdownMenuLabel>
-                <DropdownMenuItem className="text-xs">{walletAddress}</DropdownMenuItem>
+                <DropdownMenuItem className="text-xs md:w-44">
+                  {walletAddress.slice(0, 14)}...{walletAddress.slice(-8)}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Wallet Type</DropdownMenuLabel>
-                <DropdownMenuItem className="text-xs">{walletType}</DropdownMenuItem>
+                <DropdownMenuItem className="text-xs">
+                  {walletType}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Network</DropdownMenuLabel>
-                <DropdownMenuItem className="text-xs capitalize">{getNetworkDisplayName(selectedNetwork)}</DropdownMenuItem>
+                <DropdownMenuItem className="text-xs capitalize">
+                  {getNetworkDisplayName(selectedNetwork)}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Role</DropdownMenuLabel>
-                <DropdownMenuItem className="text-xs capitalize">{userRole}</DropdownMenuItem>
+                <DropdownMenuItem className="text-xs capitalize">
+                  {userRole}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={disconnectWallet}>Disconnect</DropdownMenuItem>
+                <DropdownMenuItem onClick={disconnectWallet}>
+                  Disconnect
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={isConnecting}
+                >
                   <Wallet size={16} />
-                  <span className="hidden sm:inline-block">Connect Wallet</span>
+                  <span className="hidden sm:inline-block">
+                    {isConnecting ? "Connecting..." : "Connect Wallet"}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel className="capitalize">{getNetworkDisplayName(selectedNetwork)} Wallets</DropdownMenuLabel>
+                <DropdownMenuLabel className="capitalize">
+                  {getNetworkDisplayName(selectedNetwork)} Wallets
+                </DropdownMenuLabel>
                 {getNetworkWallets()}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          
+
           <Button variant="ghost" size="icon">
             <Bell size={20} />
           </Button>
-          
+
           <Button variant="ghost" size="icon">
             <Settings size={20} />
           </Button>
@@ -250,7 +396,7 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
               <User size={20} />
             </Button>
             <div className="hidden md:block">
-              <Link to="/" className="text-sm font-medium">
+              <Link href="/" className="text-sm font-medium">
                 Back to Homepage
               </Link>
             </div>

@@ -1,257 +1,110 @@
-
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BadgeDollarSign, CreditCard, Timer, ArrowUpRight, FileText, CheckCircle, XCircle, AlertCircle, Ban } from "lucide-react";
+"use client";
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  BadgeDollarSign,
+  CreditCard,
+  Timer,
+  ArrowUpRight,
+  FileText,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CrowdfundingModal from "./CrowdfundingModal";
-import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
-
-// Project verification status type
-type VerificationStatus = "pending" | "approved" | "rejected" | "canceled";
-
-// Project type definition
-type Project = {
-  id: number;
-  name: string;
-  goal: number;
-  raised: number;
-  days: number;
-  location: string;
-  category: string;
-  description?: string;
-  verificationStatus: VerificationStatus;
-  submittedAt: Date;
-  createdBy?: string; // Added to track project creator
-};
+  CrowdfundingValidator,
+  StateTokenValidator,
+} from "@/config/scripts/crowdfunding/scripts";
+import {
+  Constr,
+  Data,
+  Lucid,
+  mintingPolicyToId,
+  toText,
+  Validator,
+  validatorToAddress,
+} from "@lucid-evolution/lucid";
+import { IdetificationPID, NETWORK, PROVIDER } from "@/config";
+import { CampaignDatum } from "@/types/cardano/datum";
+import { MetadataType } from "@/types/cardano/crowdfunding/types";
+import { useCardano } from "@/context/cardanoContext";
+import { blockfrost } from "@/lib/blockfrost";
+import { getTimeRemaining, toAda } from "@/lib/utils";
+import { set } from "date-fns";
+import { ApproveCampaign } from "@/lib/cardanoTx/crowdfunding";
+import exp from "constants";
 
 const CrowdfundingApp = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState<"submit" | "invest">("submit");
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false);
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const [projectToCancel, setProjectToCancel] = useState<Project | null>(null);
-  
-  // Mock current user ID (in a real app, this would come from authentication)
-  const currentUserId = "user123";
-  
-  // All projects, including those pending verification
-  const [projects, setProjects] = useState<Project[]>([
-    { 
-      id: 1, 
-      name: 'Amazon Rainforest Restoration', 
-      goal: 350000, 
-      raised: 182650, 
-      days: 15, 
-      location: 'Brazil',
-      category: 'Reforestation',
-      description: 'Large-scale reforestation project in the Amazon rainforest to restore degraded land and protect biodiversity.',
-      verificationStatus: 'approved',
-      submittedAt: new Date(2024, 2, 15),
-      createdBy: "user123"
-    },
-    { 
-      id: 2, 
-      name: 'Solar Microgrid Initiative', 
-      goal: 240000, 
-      raised: 156800, 
-      days: 24, 
-      location: 'Kenya',
-      category: 'Renewable Energy',
-      description: 'Building solar microgrids to provide clean energy access to rural communities in Kenya.',
-      verificationStatus: 'approved',
-      submittedAt: new Date(2024, 2, 5),
-      createdBy: "user456"
-    },
-    { 
-      id: 3, 
-      name: 'Sustainable Agriculture Project', 
-      goal: 180000, 
-      raised: 72500, 
-      days: 9, 
-      location: 'India',
-      category: 'Agriculture',
-      description: 'Implementing sustainable farming practices to reduce carbon emissions and improve soil health.',
-      verificationStatus: 'approved',
-      submittedAt: new Date(2024, 1, 28),
-      createdBy: "user789"
-    },
-    { 
-      id: 4, 
-      name: 'Mangrove Ecosystem Preservation', 
-      goal: 275000, 
-      raised: 198000, 
-      days: 12, 
-      location: 'Indonesia',
-      category: 'Conservation',
-      description: 'Protecting and restoring mangrove ecosystems to sequester carbon and protect coastal communities.',
-      verificationStatus: 'approved',
-      submittedAt: new Date(2024, 1, 20),
-      createdBy: "user123"
-    },
-    { 
-      id: 5, 
-      name: 'Urban Green Spaces Initiative', 
-      goal: 120000, 
-      raised: 0, 
-      days: 30, 
-      location: 'United States',
-      category: 'Urban Greening',
-      description: 'Creating carbon-absorbing green spaces in urban environments to combat heat islands and improve air quality.',
-      verificationStatus: 'pending',
-      submittedAt: new Date(2024, 3, 2),
-      createdBy: "user456"
-    },
-    { 
-      id: 6, 
-      name: 'Methane Capture from Landfills', 
-      goal: 290000, 
-      raised: 0, 
-      days: 45, 
-      location: 'Canada',
-      category: 'Emissions Reduction',
-      description: 'Implementing technology to capture methane emissions from landfills and convert them to usable energy.',
-      verificationStatus: 'pending',
-      submittedAt: new Date(2024, 3, 5),
-      createdBy: "user123"
-    }
-  ]);
-
-  // Filter projects for display (only approved projects)
-  const approvedProjects = projects.filter(project => project.verificationStatus === 'approved');
-  
-  // Count pending verification projects
-  const pendingVerificationCount = projects.filter(project => project.verificationStatus === 'pending').length;
-
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [balance, setBalance] = useState<
+    { unit: string; quantity: number; datum: CampaignDatum }[]
+  >([]);
   const openSubmitModal = () => {
     setModalAction("submit");
     setIsModalOpen(true);
   };
 
-  const openInvestModal = (project: Project) => {
+  const openInvestModal = (project: any) => {
     setSelectedProject(project);
     setModalAction("invest");
     setIsModalOpen(true);
   };
-  
-  const openVerificationDialog = () => {
-    if (pendingVerificationCount === 0) {
-      toast.info("No projects currently pending verification");
-      return;
+
+  useEffect(() => {
+    async function fetchutxos() {
+      const validator: Validator = StateTokenValidator();
+      const state_addr = validatorToAddress(NETWORK, validator);
+      const lucid = await Lucid(PROVIDER, NETWORK);
+      const utxos = await lucid.utxosAt(state_addr);
+
+      utxos.map(async (utxo) => {
+        Object.entries(utxo.assets).map(async ([assetKey, quantity]) => {
+          if (
+            !assetKey.startsWith(IdetificationPID) &&
+            !assetKey.startsWith("lovelace")
+          ) {
+            const data = await lucid.datumOf(utxo);
+            const datum = Data.castFrom(data, CampaignDatum);
+            setBalance((prev) => [
+              ...prev,
+              { unit: assetKey, quantity: Number(quantity), datum: datum },
+            ]);
+          }
+        });
+      });
     }
-    setIsVerificationDialogOpen(true);
-  };
-  
-  const handleProjectSubmit = (projectData: any) => {
-    const newProject: Project = {
-      id: projects.length + 1,
-      name: projectData.name,
-      goal: parseFloat(projectData.fundingGoal),
-      raised: 0,
-      days: 30, // Default funding period
-      location: projectData.location,
-      category: projectData.category,
-      description: projectData.description,
-      verificationStatus: 'pending',
-      submittedAt: new Date(),
-      createdBy: currentUserId // Associate project with current user
-    };
-    
-    setProjects([...projects, newProject]);
-    toast.success("Project submitted for verification");
-  };
-  
-  const updateProjectStatus = (projectId: number, status: VerificationStatus) => {
-    setProjects(prevProjects => 
-      prevProjects.map(project => {
-        if (project.id === projectId) {
-          return { 
-            ...project, 
-            verificationStatus: status
-          };
-        }
-        return project;
-      })
-    );
-    
-    const statusText = status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'canceled';
-    toast.success(`Project ${statusText} successfully`);
-  };
-  
-  const openCancelDialog = (project: Project) => {
-    setProjectToCancel(project);
-    setIsCancelDialogOpen(true);
-  };
-  
-  const handleCancelProject = () => {
-    if (projectToCancel) {
-      updateProjectStatus(projectToCancel.id, 'canceled');
-      setIsCancelDialogOpen(false);
-      setProjectToCancel(null);
-    }
-  };
-  
-  const getVerificationBadge = (status: VerificationStatus) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="warning" className="flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Pending Verification</Badge>;
-      case 'approved':
-        return <Badge variant="success" className="flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Verified</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive" className="flex items-center gap-1"><XCircle className="h-3 w-3" /> Rejected</Badge>;
-      case 'canceled':
-        return <Badge variant="canceled" className="flex items-center gap-1"><Ban className="h-3 w-3" /> Canceled</Badge>;
-      default:
-        return null;
-    }
-  };
-  
-  // Check if the current user is the creator of a project
-  const isProjectOwner = (project: Project) => {
-    return project.createdBy === currentUserId;
-  };
+    fetchutxos();
+  }, []);
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Project Crowdfunding</h2>
-        <div className="flex gap-2">
-          <Button 
-            className="bg-amber-600 hover:bg-amber-700"
-            onClick={openVerificationDialog}
-          >
-            <AlertCircle className="mr-2 h-4 w-4" /> 
-            Verify Projects
-            {pendingVerificationCount > 0 && (
-              <Badge variant="warning" className="ml-2">{pendingVerificationCount}</Badge>
-            )}
-          </Button>
-          <Button 
-            className="bg-karbon-600 hover:bg-karbon-700"
-            onClick={openSubmitModal}
-          >
-            <FileText className="mr-2 h-4 w-4" /> Submit Project
-          </Button>
-        </div>
+        <Button
+          className="bg-karbon-600 hover:bg-karbon-700"
+          onClick={openSubmitModal}
+        >
+          <FileText className="mr-2 h-4 w-4" /> Submit Project
+        </Button>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Campaigns</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Active Campaigns
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline">
-              <div className="text-3xl font-bold">{approvedProjects.length}</div>
+              <div className="text-3xl font-bold">12</div>
               <BadgeDollarSign className="ml-auto h-5 w-5 text-karbon-600" />
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -259,10 +112,12 @@ const CrowdfundingApp = () => {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Funded</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Funded
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline">
@@ -274,259 +129,207 @@ const CrowdfundingApp = () => {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Verification</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Your Investments
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline">
-              <div className="text-3xl font-bold">{pendingVerificationCount}</div>
-              <AlertCircle className="ml-auto h-5 w-5 text-amber-500" />
+              <div className="text-3xl font-bold">$2,500</div>
+              <ArrowUpRight className="ml-auto h-5 w-5 text-karbon-600" />
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Awaiting review
+              Current portfolio value
             </p>
           </CardContent>
         </Card>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Featured Projects</CardTitle>
-          <CardDescription>Carbon offset projects seeking funding</CardDescription>
+          <CardDescription>
+            Carbon offset projects seeking funding
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {approvedProjects.map((project) => (
-              <Card key={project.id} className="border overflow-hidden">
-                <div className="h-48 bg-gradient-to-r from-karbon-100 to-ocean-100 dark:from-karbon-900 dark:to-ocean-900 flex items-center justify-center">
-                  <span className="text-lg font-medium text-gray-500 dark:text-gray-400">Project Image</span>
-                </div>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{project.name}</CardTitle>
-                      <CardDescription>
-                        {project.location} • {project.category}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getVerificationBadge(project.verificationStatus)}
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Timer className="h-4 w-4 mr-1" />
-                        <span>{project.days} days left</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="font-medium">${(project.raised / 1000).toFixed(1)}K raised</span>
-                        <span className="text-muted-foreground">of ${(project.goal / 1000).toFixed(1)}K goal</span>
-                      </div>
-                      <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full">
-                        <div 
-                          className="h-2 bg-karbon-600 rounded-full" 
-                          style={{ width: `${(project.raised / project.goal) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="text-sm text-muted-foreground">
-                        {Math.round((project.raised / project.goal) * 100)}% funded
-                      </div>
-                      <div className="flex gap-2">
-                        {isProjectOwner(project) && (
-                          <Button 
-                            variant="outline"
-                            className="border-red-200 text-red-600 hover:bg-red-50"
-                            onClick={() => openCancelDialog(project)}
-                          >
-                            Cancel Project
-                          </Button>
-                        )}
-                        <Button 
-                          className="bg-ocean-600 hover:bg-ocean-700"
-                          onClick={() => openInvestModal(project)}
-                        >
-                          Invest Now
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {balance.map((token, index) => (
+              <CampaignCard
+                key={index}
+                datum={token.datum}
+                qty={token.quantity}
+                token={token.unit}
+              />
             ))}
-            
-            {approvedProjects.length === 0 && (
-              <div className="col-span-2 py-12 text-center text-muted-foreground">
-                No approved projects available for funding yet.
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Project Verification Dialog */}
-      <Dialog open={isVerificationDialogOpen} onOpenChange={setIsVerificationDialogOpen}>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Project Verification</DialogTitle>
-            <DialogDescription>
-              Review and approve carbon offset projects for crowdfunding
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4 space-y-6">
-            {projects
-              .filter(project => project.verificationStatus === 'pending')
-              .map(project => (
-                <Card key={project.id} className="overflow-hidden">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <CardTitle>{project.name}</CardTitle>
-                      {getVerificationBadge(project.verificationStatus)}
-                    </div>
-                    <CardDescription>
-                      Submitted: {project.submittedAt.toLocaleDateString()}
-                    </CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
-                        <p>{project.category}</p>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Location</h3>
-                        <p>{project.location}</p>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Funding Goal</h3>
-                        <p>${project.goal.toLocaleString()}</p>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-                      <p>{project.description || "No description provided"}</p>
-                    </div>
-                    
-                    <div className="flex items-center justify-end gap-2 pt-2">
-                      <Button 
-                        variant="outline"
-                        className="bg-red-50 text-red-700 border-red-100 hover:bg-red-100"
-                        onClick={() => updateProjectStatus(project.id, 'rejected')}
-                      >
-                        <XCircle className="mr-2 h-4 w-4" />
-                        Reject
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        className="bg-green-50 text-green-700 border-green-100 hover:bg-green-100"
-                        onClick={() => updateProjectStatus(project.id, 'approved')}
-                      >
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Approve
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              
-            {projects.filter(project => project.verificationStatus === 'pending').length === 0 && (
-              <div className="text-center py-8">
-                <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
-                <p className="text-muted-foreground">No projects pending verification</p>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsVerificationDialogOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Project Cancellation Confirmation Dialog */}
-      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Cancel Project</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to cancel this project? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {projectToCancel && (
-            <div className="py-4 space-y-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{projectToCancel.name}</CardTitle>
-                  <CardDescription>
-                    {projectToCancel.location} • {projectToCancel.category}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Current Funding</p>
-                      <p className="font-medium">${projectToCancel.raised.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Goal</p>
-                      <p className="font-medium">${projectToCancel.goal.toLocaleString()}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-amber-800">Important Notice</p>
-                    <p className="text-sm text-amber-700 mt-1">
-                      Canceling this project will:
-                    </p>
-                    <ul className="text-sm text-amber-700 mt-1 list-disc pl-5">
-                      <li>Mark the project as canceled and remove it from active listings</li>
-                      <li>Return all invested funds to the investors (in a real application)</li>
-                      <li>Send notifications to all stakeholders</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
-              Keep Project Active
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleCancelProject}
-            >
-              <Ban className="mr-2 h-4 w-4" /> Cancel Project
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <CrowdfundingModal 
+      <CrowdfundingModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         action={modalAction}
         projectData={selectedProject}
-        onProjectSubmit={handleProjectSubmit}
       />
     </div>
   );
 };
 
 export default CrowdfundingApp;
+
+interface CampaignCardProps {
+  token: string;
+  qty: number;
+  datum: CampaignDatum;
+}
+
+function CampaignCard({ token, qty, datum }: CampaignCardProps) {
+  const [metadata, setMetadata] = useState<MetadataType>();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [remainingToken, setRemainingToken] = useState(0n);
+  const [WalletConnection] = useCardano();
+
+  useEffect(() => {
+    async function fetchData() {
+      const result = await blockfrost.getMetadata(token);
+      setMetadata(result);
+    }
+    fetchData();
+  }, [token]);
+
+  useEffect(() => {
+    async function fetchQuantity() {
+      if (!metadata) return;
+      const oref = new Constr(0, [
+        String(metadata.hash),
+        BigInt(metadata.outputIndex),
+      ]);
+      const Campaign_Validator = CrowdfundingValidator([
+        datum.creator[0],
+        oref,
+        IdetificationPID,
+      ]);
+      // validator address & policyId
+      const contarctAddress = validatorToAddress(NETWORK, Campaign_Validator);
+      const policyId = mintingPolicyToId(Campaign_Validator);
+      const lucid = await Lucid(PROVIDER, NETWORK);
+      const utxos = await lucid.utxosAtWithUnit(
+        contarctAddress,
+        policyId + datum.name
+      );
+      utxos.map((utxo) => {
+        Object.entries(utxo.assets).map(async ([assetKey, qty]) => {
+          if (assetKey.startsWith(policyId)) {
+            setRemainingToken(qty);
+          }
+        });
+      });
+    }
+    fetchQuantity();
+  }, [metadata]);
+
+  const perFraction = datum.goal / datum.fraction;
+  const remainingFund = perFraction * remainingToken;
+  const raised = toAda(datum.goal - remainingFund);
+  const goal = toAda(datum.goal);
+
+  const imageUrl = metadata?.image.replace("ipfs://", "https://ipfs.io/ipfs/");
+  const expired = getTimeRemaining(Number(datum.deadline)) === "Time expired";
+  const handleApprove = async () => {
+    if (!metadata) return;
+    ApproveCampaign(WalletConnection, datum, metadata);
+  };
+  return (
+    metadata && (
+      <>
+        <Card className="border overflow-hidden">
+          <div className="h-48 bg-gradient-to-r from-karbon-100 to-ocean-100 dark:from-karbon-900 dark:to-ocean-900 flex items-center justify-center">
+            <span className="text-lg font-medium text-gray-500 dark:text-gray-400">
+              Project Image
+            </span>
+          </div>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-lg">
+                  {metadata.campaignName}
+                </CardTitle>
+                <CardDescription>
+                  {"location"} • {"category"}
+                </CardDescription>
+              </div>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Timer className="h-4 w-4 mr-1" />
+                <span>{getTimeRemaining(Number(datum.deadline))}</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="font-medium">
+                    ${(raised / 1000).toFixed(1)}K raised
+                  </span>
+                  <span className="text-muted-foreground">
+                    of ${(goal / 1000).toFixed(2)}K goal
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full">
+                  <div
+                    className="h-2 bg-karbon-600 rounded-full"
+                    style={{
+                      width: `${(raised / goal) * 100}%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-muted-foreground">
+                  {Math.round((raised / goal) * 100)}% funded
+                </div>
+                <Button
+                  className="bg-ocean-600 hover:bg-ocean-700"
+                  onClick={
+                    datum.state === "Running"
+                      ? () => setIsModalOpen(true)
+                      : datum.state === "Initiated"
+                      ? handleApprove
+                      : undefined
+                  }
+                  disabled={
+                    datum.state === "Finished" ||
+                    datum.state === "Cancelled" ||
+                    expired
+                  }
+                >
+                  {expired
+                    ? "Time expired"
+                    : datum.state === "Running"
+                    ? "Invest Now"
+                    : datum.state === "Initiated"
+                    ? "Approve"
+                    : datum.state === "Finished" ||
+                      (datum.state === "Cancelled" && datum.state)}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <CrowdfundingModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          action={"invest"}
+          projectData={datum}
+          metadata={metadata}
+          raised={raised}
+          goal={goal}
+        />
+      </>
+    )
+  );
+}

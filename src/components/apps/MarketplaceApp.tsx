@@ -1,443 +1,647 @@
-
+"use client";
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { ShoppingBag, TrendingUp, ArrowUpRight, CreditCard, Filter, ListPlus, Tag, Clock } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  BadgeDollarSign,
+  CreditCard,
+  Timer,
+  ArrowUpRight,
+  FileText,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Ban,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import CrowdfundingModal from "./CrowdfundingModal";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import MarketplaceModal from "./MarketplaceModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
-const MarketplaceApp = () => {
+// Project verification status type
+type VerificationStatus = "pending" | "approved" | "rejected" | "canceled";
+
+// Project type definition
+type Project = {
+  id: number;
+  name: string;
+  goal: number;
+  raised: number;
+  days: number;
+  location: string;
+  category: string;
+  description?: string;
+  verificationStatus: VerificationStatus;
+  submittedAt: Date;
+  createdBy?: string; // Added to track project creator
+};
+
+const CrowdfundingApp = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalAction, setModalAction] = useState<"buy" | "portfolio">("buy");
-  const [selectedCredit, setSelectedCredit] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"buyer" | "seller">("buyer");
-  const [listingModalOpen, setListingModalOpen] = useState(false);
-  const [newListing, setNewListing] = useState({
-    name: "",
-    description: "",
-    price: "",
-    amount: "",
-    projectType: "reforestation",
-    validatorName: "Gold Standard"
-  });
+  const [modalAction, setModalAction] = useState<"submit" | "invest">("submit");
+  const [selectedProject, setSelectedProject] = useState<Project | undefined>();
+  const [isVerificationDialogOpen, setIsVerificationDialogOpen] =
+    useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [projectToCancel, setProjectToCancel] = useState<Project | null>(null);
 
-  // Mock user's registered projects that can be listed
-  const registeredProjects = [
-    { id: 'p1', name: "Amazon Rainforest Restoration", location: "Brazil", status: "verified", type: "Reforestation", availableCredits: 5000 },
-    { id: 'p2', name: "Sustainable Wind Farm", location: "India", status: "verified", type: "Renewable Energy", availableCredits: 8000 },
-    { id: 'p3', name: "Mangrove Conservation", location: "Indonesia", status: "pending", type: "Conservation", availableCredits: 3000 },
-    { id: 'p4', name: "Solar Array Network", location: "Chile", status: "verified", type: "Renewable Energy", availableCredits: 7500 },
-  ];
+  // Mock current user ID (in a real app, this would come from authentication)
+  const currentUserId = "user123";
 
-  // Mock active listings of the seller
-  const sellerListings = [
-    { id: 'l1', projectName: "Amazon Rainforest Restoration", price: 18.50, amountListed: 2000, amountSold: 500, createdAt: "2025-03-15" },
-    { id: 'l2', name: "Solar Array Network", price: 16.25, amountListed: 5000, amountSold: 1200, createdAt: "2025-03-20" },
-  ];
+  // All projects, including those pending verification
+  const [projects, setProjects] = useState<Project[]>([
+    {
+      id: 1,
+      name: "Amazon Rainforest Restoration",
+      goal: 350000,
+      raised: 182650,
+      days: 15,
+      location: "Brazil",
+      category: "Reforestation",
+      description:
+        "Large-scale reforestation project in the Amazon rainforest to restore degraded land and protect biodiversity.",
+      verificationStatus: "approved",
+      submittedAt: new Date(2024, 2, 15),
+      createdBy: "user123",
+    },
+    {
+      id: 2,
+      name: "Solar Microgrid Initiative",
+      goal: 240000,
+      raised: 156800,
+      days: 24,
+      location: "Kenya",
+      category: "Renewable Energy",
+      description:
+        "Building solar microgrids to provide clean energy access to rural communities in Kenya.",
+      verificationStatus: "approved",
+      submittedAt: new Date(2024, 2, 5),
+      createdBy: "user456",
+    },
+    {
+      id: 3,
+      name: "Sustainable Agriculture Project",
+      goal: 180000,
+      raised: 72500,
+      days: 9,
+      location: "India",
+      category: "Agriculture",
+      description:
+        "Implementing sustainable farming practices to reduce carbon emissions and improve soil health.",
+      verificationStatus: "approved",
+      submittedAt: new Date(2024, 1, 28),
+      createdBy: "user789",
+    },
+    {
+      id: 4,
+      name: "Mangrove Ecosystem Preservation",
+      goal: 275000,
+      raised: 198000,
+      days: 12,
+      location: "Indonesia",
+      category: "Conservation",
+      description:
+        "Protecting and restoring mangrove ecosystems to sequester carbon and protect coastal communities.",
+      verificationStatus: "approved",
+      submittedAt: new Date(2024, 1, 20),
+      createdBy: "user123",
+    },
+    {
+      id: 5,
+      name: "Urban Green Spaces Initiative",
+      goal: 120000,
+      raised: 0,
+      days: 30,
+      location: "United States",
+      category: "Urban Greening",
+      description:
+        "Creating carbon-absorbing green spaces in urban environments to combat heat islands and improve air quality.",
+      verificationStatus: "pending",
+      submittedAt: new Date(2024, 3, 2),
+      createdBy: "user456",
+    },
+    {
+      id: 6,
+      name: "Methane Capture from Landfills",
+      goal: 290000,
+      raised: 0,
+      days: 45,
+      location: "Canada",
+      category: "Emissions Reduction",
+      description:
+        "Implementing technology to capture methane emissions from landfills and convert them to usable energy.",
+      verificationStatus: "pending",
+      submittedAt: new Date(2024, 3, 5),
+      createdBy: "user123",
+    },
+  ]);
 
-  const openBuyModal = (credit: any) => {
-    setSelectedCredit(credit);
-    setModalAction("buy");
+  // Filter projects for display (only approved projects)
+  const approvedProjects = projects.filter(
+    (project) => project.verificationStatus === "approved"
+  );
+
+  // Count pending verification projects
+  const pendingVerificationCount = projects.filter(
+    (project) => project.verificationStatus === "pending"
+  ).length;
+
+  const openSubmitModal = () => {
+    setModalAction("submit");
     setIsModalOpen(true);
   };
 
-  const openPortfolioModal = () => {
-    setModalAction("portfolio");
+  const openInvestModal = (project: Project) => {
+    setSelectedProject(project);
+    setModalAction("invest");
     setIsModalOpen(true);
   };
 
-  const handleCreateListing = () => {
-    setListingModalOpen(true);
+  const openVerificationDialog = () => {
+    if (pendingVerificationCount === 0) {
+      toast.info("No projects currently pending verification");
+      return;
+    }
+    setIsVerificationDialogOpen(true);
   };
 
-  const handleListingModalSubmit = () => {
-    // Here we would handle the actual listing submission
-    // For now, just close the modal
-    setListingModalOpen(false);
-    
-    // Reset form
-    setNewListing({
-      name: "",
-      description: "",
-      price: "",
-      amount: "",
-      projectType: "reforestation",
-      validatorName: "Gold Standard"
-    });
+  const handleProjectSubmit = (projectData: any) => {
+    const newProject: Project = {
+      id: projects.length + 1,
+      name: projectData.name,
+      goal: parseFloat(projectData.fundingGoal),
+      raised: 0,
+      days: 30, // Default funding period
+      location: projectData.location,
+      category: projectData.category,
+      description: projectData.description,
+      verificationStatus: "pending",
+      submittedAt: new Date(),
+      createdBy: currentUserId, // Associate project with current user
+    };
+
+    setProjects([...projects, newProject]);
+    toast.success("Project submitted for verification");
+  };
+
+  const updateProjectStatus = (
+    projectId: number,
+    status: VerificationStatus
+  ) => {
+    setProjects((prevProjects) =>
+      prevProjects.map((project) => {
+        if (project.id === projectId) {
+          return {
+            ...project,
+            verificationStatus: status,
+          };
+        }
+        return project;
+      })
+    );
+
+    const statusText =
+      status === "approved"
+        ? "approved"
+        : status === "rejected"
+        ? "rejected"
+        : "canceled";
+    toast.success(`Project ${statusText} successfully`);
+  };
+
+  const openCancelDialog = (project: Project) => {
+    setProjectToCancel(project);
+    setIsCancelDialogOpen(true);
+  };
+
+  const handleCancelProject = () => {
+    if (projectToCancel) {
+      updateProjectStatus(projectToCancel.id, "canceled");
+      setIsCancelDialogOpen(false);
+      setProjectToCancel(null);
+    }
+  };
+
+  const getVerificationBadge = (status: VerificationStatus) => {
+    switch (status) {
+      case "pending":
+        return (
+          <Badge variant="warning" className="flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" /> Pending Verification
+          </Badge>
+        );
+      case "approved":
+        return (
+          <Badge variant="success" className="flex items-center gap-1">
+            <CheckCircle className="h-3 w-3" /> Verified
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge variant="destructive" className="flex items-center gap-1">
+            <XCircle className="h-3 w-3" /> Rejected
+          </Badge>
+        );
+      case "canceled":
+        return (
+          <Badge variant="canceled" className="flex items-center gap-1">
+            <Ban className="h-3 w-3" /> Canceled
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Check if the current user is the creator of a project
+  const isProjectOwner = (project: Project) => {
+    return project.createdBy === currentUserId;
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Carbon Credit Marketplace</h2>
-        <div className="flex space-x-3">
-          <Button 
-            className="bg-ocean-600 hover:bg-ocean-700"
-            onClick={openPortfolioModal}
+        <h2 className="text-2xl font-bold">Project Crowdfunding</h2>
+        <div className="flex gap-2">
+          <Button
+            className="bg-amber-600 hover:bg-amber-700"
+            onClick={openVerificationDialog}
           >
-            <CreditCard className="mr-2 h-4 w-4" /> My Portfolio
+            <AlertCircle className="mr-2 h-4 w-4" />
+            Verify Projects
+            {pendingVerificationCount > 0 && (
+              <Badge variant="warning" className="ml-2">
+                {pendingVerificationCount}
+              </Badge>
+            )}
+          </Button>
+          <Button
+            className="bg-karbon-600 hover:bg-karbon-700"
+            onClick={openSubmitModal}
+          >
+            <FileText className="mr-2 h-4 w-4" /> Submit Project
           </Button>
         </div>
       </div>
-      
-      <Tabs 
-        defaultValue="buyer" 
-        value={activeTab} 
-        onValueChange={(value) => setActiveTab(value as "buyer" | "seller")}
-        className="w-full"
-      >
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="buyer">Buyer View</TabsTrigger>
-          <TabsTrigger value="seller">Seller View</TabsTrigger>
-        </TabsList>
-        
-        {/* Buyer Tab Content */}
-        <TabsContent value="buyer">
-          <div className="space-y-6">
-            <div className="flex items-center space-x-4 mb-6">
-              <Input placeholder="Search marketplace..." className="max-w-xs" />
-              <Button variant="outline">
-                <Filter className="mr-2 h-4 w-4" /> Filter
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Available Credits</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-baseline">
-                    <div className="text-3xl font-bold">18,245</div>
-                    <div className="ml-1 text-lg">tCO₂e</div>
-                    <ShoppingBag className="ml-auto h-5 w-5 text-ocean-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Average Price</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-baseline">
-                    <div className="text-3xl font-bold">$12.35</div>
-                    <div className="ml-1 text-sm">per tCO₂e</div>
-                    <TrendingUp className="ml-auto h-5 w-5 text-karbon-600" />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Trading Volume</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-baseline">
-                    <div className="text-3xl font-bold">$1.2M</div>
-                    <ArrowUpRight className="ml-auto h-5 w-5 text-karbon-600" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Featured Carbon Credits</CardTitle>
-                <CardDescription>Popular credits available for purchase</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[
-                    { id: 1, name: "Reforestation Project #1", price: 10.50, location: "Brazil", type: "Reforestation" },
-                    { id: 2, name: "Solar Energy Project #1", price: 11.25, location: "India", type: "Renewable Energy" },
-                    { id: 3, name: "Reforestation Project #2", price: 12.00, location: "Brazil", type: "Reforestation" },
-                    { id: 4, name: "Solar Energy Project #2", price: 12.75, location: "India", type: "Renewable Energy" },
-                    { id: 5, name: "Reforestation Project #3", price: 13.50, location: "Brazil", type: "Reforestation" },
-                    { id: 6, name: "Solar Energy Project #3", price: 14.25, location: "India", type: "Renewable Energy" }
-                  ].map((credit) => (
-                    <Card key={credit.id} className="border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle className="text-base">{credit.name}</CardTitle>
-                            <CardDescription className="text-xs">
-                              {credit.location} • Verified by {credit.id % 3 === 0 ? 'Gold Standard' : 'Verra'}
-                            </CardDescription>
-                          </div>
-                          <div className="rounded-full bg-ocean-100 dark:bg-ocean-800 p-1">
-                            <ShoppingBag className="h-4 w-4 text-ocean-600" />
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex justify-between items-end mt-2">
-                          <div>
-                            <div className="text-sm text-muted-foreground">Price</div>
-                            <div className="text-lg font-bold">${credit.price.toFixed(2)}</div>
-                          </div>
-                          <Button 
-                            size="sm" 
-                            className="bg-ocean-600 hover:bg-ocean-700"
-                            onClick={() => openBuyModal(credit)}
-                          >
-                            Buy Now
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
-        {/* Seller Tab Content */}
-        <TabsContent value="seller">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold">My Carbon Projects</h3>
-              <Button 
-                onClick={handleCreateListing}
-                className="bg-karbon-600 hover:bg-karbon-700"
-              >
-                <ListPlus className="mr-2 h-4 w-4" /> List New Credits
-              </Button>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Registered Projects</CardTitle>
-                <CardDescription>Your verified carbon projects eligible for listing</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Project Name</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Available Credits</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {registeredProjects.map((project) => (
-                      <TableRow key={project.id}>
-                        <TableCell className="font-medium">{project.name}</TableCell>
-                        <TableCell>{project.location}</TableCell>
-                        <TableCell>{project.type}</TableCell>
-                        <TableCell>
-                          <Badge variant={project.status === "verified" ? "success" : "secondary"}>
-                            {project.status === "verified" ? "Verified" : "Pending"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{project.availableCredits.toLocaleString()} tCO₂e</TableCell>
-                        <TableCell>
-                          <Button 
-                            size="sm" 
-                            variant={project.status === "verified" ? "default" : "outline"}
-                            disabled={project.status !== "verified"}
-                            className={project.status === "verified" ? "bg-karbon-600 hover:bg-karbon-700" : ""}
-                            onClick={() => {
-                              if (project.status === "verified") {
-                                setNewListing({
-                                  ...newListing,
-                                  name: project.name
-                                });
-                                handleCreateListing();
-                              }
-                            }}
-                          >
-                            {project.status === "verified" ? "List Credits" : "Awaiting Verification"}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>My Active Listings</CardTitle>
-                <CardDescription>Credits currently available on the marketplace</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {sellerListings.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Project Name</TableHead>
-                        <TableHead>Listed Price</TableHead>
-                        <TableHead>Credits Listed</TableHead>
-                        <TableHead>Credits Sold</TableHead>
-                        <TableHead>Listed Date</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sellerListings.map((listing) => (
-                        <TableRow key={listing.id}>
-                          <TableCell className="font-medium">{listing.projectName || listing.name}</TableCell>
-                          <TableCell>${listing.price.toFixed(2)} per tCO₂e</TableCell>
-                          <TableCell>{listing.amountListed.toLocaleString()} tCO₂e</TableCell>
-                          <TableCell>{listing.amountSold.toLocaleString()} tCO₂e</TableCell>
-                          <TableCell>{listing.createdAt}</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button size="sm" variant="outline">
-                                Edit
-                              </Button>
-                              <Button size="sm" variant="destructive">
-                                Delist
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Tag className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                    <p className="text-lg font-medium mb-1">No active listings</p>
-                    <p className="text-sm">Start selling carbon credits by listing your verified projects</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
 
-      {/* Original Buyer Marketplace Modal */}
-      <MarketplaceModal 
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        action={modalAction}
-        creditData={selectedCredit}
-      />
-      
-      {/* New Listing Dialog */}
-      <Dialog open={listingModalOpen} onOpenChange={setListingModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Active Campaigns
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline">
+              <div className="text-3xl font-bold">
+                {approvedProjects.length}
+              </div>
+              <BadgeDollarSign className="ml-auto h-5 w-5 text-karbon-600" />
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Open for funding
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Funded
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline">
+              <div className="text-3xl font-bold">$4.2M</div>
+              <CreditCard className="ml-auto h-5 w-5 text-ocean-600" />
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Across all projects
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Pending Verification
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline">
+              <div className="text-3xl font-bold">
+                {pendingVerificationCount}
+              </div>
+              <AlertCircle className="ml-auto h-5 w-5 text-amber-500" />
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Awaiting review
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Featured Projects</CardTitle>
+          <CardDescription>
+            Carbon offset projects seeking funding
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {approvedProjects.map((project) => (
+              <Card key={project.id} className="border overflow-hidden">
+                <div className="h-48 bg-gradient-to-r from-karbon-100 to-ocean-100 dark:from-karbon-900 dark:to-ocean-900 flex items-center justify-center">
+                  <span className="text-lg font-medium text-gray-500 dark:text-gray-400">
+                    Project Image
+                  </span>
+                </div>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{project.name}</CardTitle>
+                      <CardDescription>
+                        {project.location} • {project.category}
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getVerificationBadge(project.verificationStatus)}
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Timer className="h-4 w-4 mr-1" />
+                        <span>{project.days} days left</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="font-medium">
+                          ${(project.raised / 1000).toFixed(1)}K raised
+                        </span>
+                        <span className="text-muted-foreground">
+                          of ${(project.goal / 1000).toFixed(1)}K goal
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full">
+                        <div
+                          className="h-2 bg-karbon-600 rounded-full"
+                          style={{
+                            width: `${(project.raised / project.goal) * 100}%`,
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm text-muted-foreground">
+                        {Math.round((project.raised / project.goal) * 100)}%
+                        funded
+                      </div>
+                      <div className="flex gap-2">
+                        {isProjectOwner(project) && (
+                          <Button
+                            variant="outline"
+                            className="border-red-200 text-red-600 hover:bg-red-50"
+                            onClick={() => openCancelDialog(project)}
+                          >
+                            Cancel Project
+                          </Button>
+                        )}
+                        <Button
+                          className="bg-ocean-600 hover:bg-ocean-700"
+                          onClick={() => openInvestModal(project)}
+                        >
+                          Invest Now
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            {approvedProjects.length === 0 && (
+              <div className="col-span-2 py-12 text-center text-muted-foreground">
+                No approved projects available for funding yet.
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Project Verification Dialog */}
+      <Dialog
+        open={isVerificationDialogOpen}
+        onOpenChange={setIsVerificationDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>List Carbon Credits</DialogTitle>
+            <DialogTitle>Project Verification</DialogTitle>
             <DialogDescription>
-              Create a new listing to sell your verified carbon credits on the marketplace.
+              Review and approve carbon offset projects for crowdfunding
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="project-name" className="text-right">
-                Project
-              </Label>
-              <Select value={newListing.name} onValueChange={(value) => setNewListing({...newListing, name: value})}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {registeredProjects
-                    .filter(project => project.status === "verified")
-                    .map(project => (
-                      <SelectItem key={project.id} value={project.name}>{project.name}</SelectItem>
-                    ))
-                  }
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
-                Description
-              </Label>
-              <Textarea 
-                id="description" 
-                placeholder="Describe your carbon credits and their environmental impact" 
-                className="col-span-3"
-                value={newListing.description}
-                onChange={(e) => setNewListing({...newListing, description: e.target.value})}
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="amount" className="text-right">
-                Amount (tCO₂e)
-              </Label>
-              <Input 
-                id="amount" 
-                placeholder="Amount of carbon credits to list" 
-                className="col-span-3"
-                type="number"
-                value={newListing.amount}
-                onChange={(e) => setNewListing({...newListing, amount: e.target.value})}
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="price" className="text-right">
-                Price (USD per tCO₂e)
-              </Label>
-              <Input 
-                id="price" 
-                placeholder="Price per carbon credit" 
-                className="col-span-3"
-                type="number"
-                min="0"
-                step="0.01"
-                value={newListing.price}
-                onChange={(e) => setNewListing({...newListing, price: e.target.value})}
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="validator" className="text-right">
-                Validator
-              </Label>
-              <Select 
-                value={newListing.validatorName}
-                onValueChange={(value) => setNewListing({...newListing, validatorName: value})}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select validator" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Gold Standard">Gold Standard</SelectItem>
-                  <SelectItem value="Verra">Verra</SelectItem>
-                  <SelectItem value="Climate Action Reserve">Climate Action Reserve</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
+          <div className="py-4 space-y-6">
+            {projects
+              .filter((project) => project.verificationStatus === "pending")
+              .map((project) => (
+                <Card key={project.id} className="overflow-hidden">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <CardTitle>{project.name}</CardTitle>
+                      {getVerificationBadge(project.verificationStatus)}
+                    </div>
+                    <CardDescription>
+                      Submitted: {project.submittedAt.toLocaleDateString()}
+                    </CardDescription>
+                  </CardHeader>
+
+                  <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          Category
+                        </h3>
+                        <p>{project.category}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          Location
+                        </h3>
+                        <p>{project.location}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                          Funding Goal
+                        </h3>
+                        <p>${project.goal.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                        Description
+                      </h3>
+                      <p>{project.description || "No description provided"}</p>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        className="bg-red-50 text-red-700 border-red-100 hover:bg-red-100"
+                        onClick={() =>
+                          updateProjectStatus(project.id, "rejected")
+                        }
+                      >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Reject
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="bg-green-50 text-green-700 border-green-100 hover:bg-green-100"
+                        onClick={() =>
+                          updateProjectStatus(project.id, "approved")
+                        }
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Approve
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+            {projects.filter(
+              (project) => project.verificationStatus === "pending"
+            ).length === 0 && (
+              <div className="text-center py-8">
+                <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="text-muted-foreground">
+                  No projects pending verification
+                </p>
+              </div>
+            )}
           </div>
-          
-          <DialogFooter className="flex space-x-2 justify-end">
-            <Button variant="outline" onClick={() => setListingModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              className="bg-karbon-600 hover:bg-karbon-700"
-              onClick={handleListingModalSubmit}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsVerificationDialogOpen(false)}
             >
-              <Tag className="mr-2 h-4 w-4" />
-              List Carbon Credits
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Project Cancellation Confirmation Dialog */}
+      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Cancel Project</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this project? This action cannot
+              be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {projectToCancel && (
+            <div className="py-4 space-y-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">
+                    {projectToCancel.name}
+                  </CardTitle>
+                  <CardDescription>
+                    {projectToCancel.location} • {projectToCancel.category}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Current Funding
+                      </p>
+                      <p className="font-medium">
+                        ${projectToCancel.raised.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Goal</p>
+                      <p className="font-medium">
+                        ${projectToCancel.goal.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-800">
+                      Important Notice
+                    </p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Canceling this project will:
+                    </p>
+                    <ul className="text-sm text-amber-700 mt-1 list-disc pl-5">
+                      <li>
+                        Mark the project as canceled and remove it from active
+                        listings
+                      </li>
+                      <li>
+                        Return all invested funds to the investors (in a real
+                        application)
+                      </li>
+                      <li>Send notifications to all stakeholders</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={() => setIsCancelDialogOpen(false)}
+            >
+              Keep Project Active
+            </Button>
+            <Button variant="destructive" onClick={handleCancelProject}>
+              <Ban className="mr-2 h-4 w-4" /> Cancel Project
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <CrowdfundingModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        action={modalAction}
+        // projectData={selectedProject}
+        onProjectSubmit={handleProjectSubmit}
+      />
     </div>
   );
 };
 
-export default MarketplaceApp;
+export default CrowdfundingApp;
