@@ -15,6 +15,7 @@
     "@harmoniclabs/crypto": "^0.3.0-dev0",
     "@harmoniclabs/pair": "^1.0.0",
     "@hookform/resolvers": "^3.9.0",
+    "@internationalized/date": "^3.7.0",
     "@lucid-evolution/lucid": "^0.4.25",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",

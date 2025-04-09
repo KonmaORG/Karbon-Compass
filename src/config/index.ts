@@ -52,3 +52,11 @@ export const identificationPolicyid: PolicyId =
 
 export const VALIDATOR_CONTRACT_ADDRESS =
   "addr_test1wp5dde7cz3rtkxmjaap8tyv9hwnwdphuxyg7aw0f4a46l0sj6lnxe";
+
+//CROWDFUNDING
+export const IdetificationPID =
+  "06cab6a81e5f3dcbfdd0a68e57edf77c43682063e8df89c545ec5dfd"; //preview
+// "93a74c2bd74b872e0e895269626ce4c94f13a45f3743c63e17a8e513"; //emulator
+
+export const PLATFORMADDR =
+  "addr_test1qp8lyrn3hpt07xf45qg5n0q9qcqanlfu08ja27ek6antfeswpy2laxtnvd8l78fxuw8fx5yse93a2guf9uap9adfflnsvd3vw6";
