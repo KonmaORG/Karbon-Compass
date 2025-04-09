@@ -311,7 +311,7 @@ const CrowdfundingModal = ({
               </div>
             </div>
           </div>
-        ) : projectData && raised && goal ? (
+        ) : projectData && raised !== undefined && raised !== null && goal ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
