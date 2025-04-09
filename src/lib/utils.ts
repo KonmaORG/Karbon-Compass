@@ -11,6 +11,8 @@ import {
   fromText,
   Validator,
   Script,
+  keyHashToCredential,
+  credentialToAddress,
 } from "@lucid-evolution/lucid";
 
 export function cn(...inputs: ClassValue[]) {
