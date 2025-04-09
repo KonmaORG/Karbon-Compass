@@ -34,17 +34,19 @@ import {
   stakeCredentialOf,
   toText,
 } from "@lucid-evolution/lucid";
-import { CreateCampaign } from "@/lib/cardanoTx/crowdfunding";
+import { CreateCampaign, SupportCampaign } from "@/lib/cardanoTx/crowdfunding";
 import { useCardano } from "@/context/cardanoContext";
 import { getTimeRemaining, toLovelace } from "@/lib/utils";
 import { DatePicker } from "@heroui/date-picker";
 import { set } from "date-fns";
+import { MetadataType } from "@/types/cardano/crowdfunding/types";
 
 type CrowdfundingModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   action: "submit" | "invest";
   projectData?: CampaignDatum;
+  metadata?: MetadataType;
   raised?: number;
   goal?: number;
   onProjectSubmit?: (data: any) => void;
@@ -55,6 +57,7 @@ const CrowdfundingModal = ({
   onOpenChange,
   action,
   projectData,
+  metadata,
   raised,
   goal,
 }: CrowdfundingModalProps) => {
@@ -64,7 +67,7 @@ const CrowdfundingModal = ({
   const [projectGoal, setProjectGoal] = useState<number>(0);
   const [projectDescription, setProjectDescription] = useState<string>("");
   const [numberOfMilestones, setNumberOfMilestones] = useState<number>(1);
-  const [fractions, setFractions] = useState<number>(0);
+  const [fractions, setFractions] = useState<number>(10);
   const timezone = getLocalTimeZone();
   const timeNow = fromAbsolute(Date.now(), timezone);
   const [campaignDeadline, setCampaignDeadline] =
@@ -77,45 +80,59 @@ const CrowdfundingModal = ({
       toast.error("Wallet not connected!");
       return;
     }
-    setIsLoading(true);
-    if (action === "submit") {
-      if (
-        !campaignDeadline ||
-        !projectName ||
-        !projectGoal ||
-        !fractions ||
-        !numberOfMilestones ||
-        !projectDescription
-      ) {
-        toast.error("Required fields are missing!");
-        setIsLoading(false);
-        return;
+    try {
+      setIsLoading(true);
+      if (action === "submit") {
+        if (
+          !campaignDeadline ||
+          !projectName ||
+          !projectGoal ||
+          !fractions ||
+          !numberOfMilestones ||
+          !projectDescription
+        ) {
+          toast.error("Required fields are missing!");
+          setIsLoading(false);
+          return;
+        }
+        const deadline = BigInt(campaignDeadline.toDate().getTime());
+        const datum: CampaignDatum = {
+          name: fromText(projectName || ""),
+          goal: toLovelace(projectGoal || 0),
+          deadline: deadline + 100000000n, //temporary fix for deadline till date picker works
+          creator: [
+            paymentCredentialOf(address).hash,
+            stakeCredentialOf(address).hash,
+          ],
+          milestone: new Array(numberOfMilestones).fill(false),
+          state: "Initiated",
+          fraction: BigInt(fractions),
+        };
+        await CreateCampaign(walletConnection, datum, projectDescription);
       }
-      const deadline = BigInt(campaignDeadline.toDate().getTime());
-      const datum: CampaignDatum = {
-        name: fromText(projectName || ""),
-        goal: toLovelace(projectGoal || 0),
-        deadline: deadline + 100000n, //temporary fix for deadline till date picker works
-        creator: [
-          paymentCredentialOf(address).hash,
-          stakeCredentialOf(address).hash,
-        ],
-        milestone: new Array(numberOfMilestones).fill(false),
-        state: "Initiated",
-        fraction: BigInt(fractions),
-      };
-      await CreateCampaign(walletConnection, datum, projectDescription);
-    }
-    if (action === "invest") {
-      if (!investmentAmount) {
-        toast.error("Investment amount is required!");
-        setIsLoading(false);
-        return;
+      if (action === "invest") {
+        if (!investmentAmount || !projectData || !metadata || !goal) {
+          toast.error("Investment amount is required!");
+          setIsLoading(false);
+          return;
+        }
+        // Handle investment logic here
+        const supportedAmount = investmentAmount;
+        const minSupportAmount = goal / Number(projectData.fraction);
+        const supportedFraction = Math.round(
+          supportedAmount / Number(minSupportAmount)
+        );
+        await SupportCampaign(
+          walletConnection,
+          projectData,
+          metadata,
+          supportedFraction
+        );
       }
-      // Handle investment logic here
-      console.log("Investment Amount:", investmentAmount);
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const getPredefinedAmounts = () => {
@@ -238,7 +255,6 @@ const CrowdfundingModal = ({
                   value={numberOfMilestones.toString()}
                   onChange={(e) => {
                     setNumberOfMilestones(Number(e.target.value));
-                    console.log(numberOfMilestones, "changed");
                   }}
                   placeholder="Enter number"
                 />

@@ -325,6 +325,7 @@ function CampaignCard({ token, qty, datum }: CampaignCardProps) {
           onOpenChange={setIsModalOpen}
           action={"invest"}
           projectData={datum}
+          metadata={metadata}
           raised={raised}
           goal={goal}
         />
