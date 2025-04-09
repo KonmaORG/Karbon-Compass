@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -16,12 +16,33 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CrowdfundingModal from "./CrowdfundingModal";
+import {
+  CrowdfundingValidator,
+  StateTokenValidator,
+} from "@/config/scripts/crowdfunding/scripts";
+import {
+  Constr,
+  Data,
+  Lucid,
+  mintingPolicyToId,
+  Validator,
+  validatorToAddress,
+} from "@lucid-evolution/lucid";
+import { IdetificationPID, NETWORK, PROVIDER } from "@/config";
+import { CampaignDatum } from "@/types/cardano/datum";
+import { MetadataType } from "@/types/cardano/crowdfunding/types";
+import { useCardano } from "@/context/cardanoContext";
+import { blockfrost } from "@/lib/blockfrost";
+import { getTimeRemaining, toAda } from "@/lib/utils";
+import { set } from "date-fns";
 
 const CrowdfundingApp = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState<"submit" | "invest">("submit");
   const [selectedProject, setSelectedProject] = useState<any>(null);
-
+  const [balance, setBalance] = useState<
+    { unit: string; quantity: number; datum: CampaignDatum }[]
+  >([]);
   const openSubmitModal = () => {
     setModalAction("submit");
     setIsModalOpen(true);
@@ -32,6 +53,32 @@ const CrowdfundingApp = () => {
     setModalAction("invest");
     setIsModalOpen(true);
   };
+
+  useEffect(() => {
+    async function fetchutxos() {
+      const validator: Validator = StateTokenValidator();
+      const state_addr = validatorToAddress(NETWORK, validator);
+      const lucid = await Lucid(PROVIDER, NETWORK);
+      const utxos = await lucid.utxosAt(state_addr);
+
+      utxos.map(async (utxo) => {
+        Object.entries(utxo.assets).map(async ([assetKey, quantity]) => {
+          if (
+            !assetKey.startsWith(IdetificationPID) &&
+            !assetKey.startsWith("lovelace")
+          ) {
+            const data = await lucid.datumOf(utxo);
+            const datum = Data.castFrom(data, CampaignDatum);
+            setBalance((prev) => [
+              ...prev,
+              { unit: assetKey, quantity: Number(quantity), datum: datum },
+            ]);
+          }
+        });
+      });
+    }
+    fetchutxos();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -107,99 +154,13 @@ const CrowdfundingApp = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {[
-              {
-                id: 1,
-                name: "Amazon Rainforest Restoration",
-                goal: 350000,
-                raised: 182650,
-                days: 15,
-                location: "Brazil",
-                category: "Reforestation",
-              },
-              {
-                id: 2,
-                name: "Solar Microgrid Initiative",
-                goal: 240000,
-                raised: 156800,
-                days: 24,
-                location: "Kenya",
-                category: "Renewable Energy",
-              },
-              {
-                id: 3,
-                name: "Sustainable Agriculture Project",
-                goal: 180000,
-                raised: 72500,
-                days: 9,
-                location: "India",
-                category: "Agriculture",
-              },
-              {
-                id: 4,
-                name: "Mangrove Ecosystem Preservation",
-                goal: 275000,
-                raised: 198000,
-                days: 12,
-                location: "Indonesia",
-                category: "Conservation",
-              },
-            ].map((project) => (
-              <Card key={project.id} className="border overflow-hidden">
-                <div className="h-48 bg-gradient-to-r from-karbon-100 to-ocean-100 dark:from-karbon-900 dark:to-ocean-900 flex items-center justify-center">
-                  <span className="text-lg font-medium text-gray-500 dark:text-gray-400">
-                    Project Image
-                  </span>
-                </div>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{project.name}</CardTitle>
-                      <CardDescription>
-                        {project.location} • {project.category}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Timer className="h-4 w-4 mr-1" />
-                      <span>{project.days} days left</span>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="font-medium">
-                          ${(project.raised / 1000).toFixed(1)}K raised
-                        </span>
-                        <span className="text-muted-foreground">
-                          of ${(project.goal / 1000).toFixed(1)}K goal
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full">
-                        <div
-                          className="h-2 bg-karbon-600 rounded-full"
-                          style={{
-                            width: `${(project.raised / project.goal) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="text-sm text-muted-foreground">
-                        {Math.round((project.raised / project.goal) * 100)}%
-                        funded
-                      </div>
-                      <Button
-                        className="bg-ocean-600 hover:bg-ocean-700"
-                        onClick={() => openInvestModal(project)}
-                      >
-                        Invest Now
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {balance.map((token, index) => (
+              <CampaignCard
+                key={index}
+                datum={token.datum}
+                qty={token.quantity}
+                token={token.unit}
+              />
             ))}
           </div>
         </CardContent>
@@ -216,3 +177,132 @@ const CrowdfundingApp = () => {
 };
 
 export default CrowdfundingApp;
+
+interface CampaignCardProps {
+  token: string;
+  qty: number;
+  datum: CampaignDatum;
+}
+
+function CampaignCard({ token, qty, datum }: CampaignCardProps) {
+  const [metadata, setMetadata] = useState<MetadataType>();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [remainingToken, setRemainingToken] = useState(0n);
+  const [WalletConnection] = useCardano();
+
+  useEffect(() => {
+    async function fetchData() {
+      const result = await blockfrost.getMetadata(token);
+      setMetadata(result);
+    }
+    fetchData();
+  }, [token]);
+
+  useEffect(() => {
+    async function fetchQuantity() {
+      if (!metadata) return;
+      const oref = new Constr(0, [
+        String(metadata.hash),
+        BigInt(metadata.outputIndex),
+      ]);
+      const Campaign_Validator = CrowdfundingValidator([
+        datum.creator[0],
+        oref,
+        IdetificationPID,
+      ]);
+      // validator address & policyId
+      const contarctAddress = validatorToAddress(NETWORK, Campaign_Validator);
+      const policyId = mintingPolicyToId(Campaign_Validator);
+      const lucid = await Lucid(PROVIDER, NETWORK);
+      const utxos = await lucid.utxosAtWithUnit(
+        contarctAddress,
+        policyId + datum.name
+      );
+      utxos.map((utxo) => {
+        Object.entries(utxo.assets).map(async ([assetKey, qty]) => {
+          if (assetKey.startsWith(policyId)) {
+            setRemainingToken(qty);
+          }
+        });
+      });
+    }
+    fetchQuantity();
+  }, [metadata]);
+
+  const perFraction = datum.goal / datum.fraction;
+  const remainingFund = perFraction * remainingToken;
+  const raised = toAda(datum.goal - remainingFund);
+  const goal = toAda(datum.goal);
+
+  const imageUrl = metadata?.image.replace("ipfs://", "https://ipfs.io/ipfs/");
+  return (
+    metadata && (
+      <>
+        <Card className="border overflow-hidden">
+          <div className="h-48 bg-gradient-to-r from-karbon-100 to-ocean-100 dark:from-karbon-900 dark:to-ocean-900 flex items-center justify-center">
+            <span className="text-lg font-medium text-gray-500 dark:text-gray-400">
+              Project Image
+            </span>
+          </div>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-lg">
+                  {metadata.campaignName}
+                </CardTitle>
+                <CardDescription>
+                  {"location"} • {"category"}
+                </CardDescription>
+              </div>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Timer className="h-4 w-4 mr-1" />
+                <span>{getTimeRemaining(Number(datum.deadline))}</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="font-medium">
+                    ${(raised / 1000).toFixed(1)}K raised
+                  </span>
+                  <span className="text-muted-foreground">
+                    of ${(goal / 1000).toFixed(2)}K goal
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full">
+                  <div
+                    className="h-2 bg-karbon-600 rounded-full"
+                    style={{
+                      width: `${(raised / goal) * 100}%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-muted-foreground">
+                  {Math.round((raised / goal) * 100)}% funded
+                </div>
+                <Button
+                  className="bg-ocean-600 hover:bg-ocean-700"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  Invest Now
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <CrowdfundingModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          action={"invest"}
+          projectData={datum}
+          raised={raised}
+          goal={goal}
+        />
+      </>
+    )
+  );
+}

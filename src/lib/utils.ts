@@ -59,3 +59,22 @@ export function handleError(error: any) {
   // });
   console.error(failureInfo ?? failureMessage ?? info ?? message ?? error);
 }
+
+export function getTimeRemaining(futureTimestamp) {
+  const now = Date.now();
+  const diff = futureTimestamp - now;
+
+  if (diff <= 0) return "Time expired";
+
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+  if (days >= 1) {
+    return `${days} day${days > 1 ? "s" : ""} left`;
+  } else if (hours >= 1) {
+    return `${hours} hour${hours > 1 ? "s" : ""} left`;
+  } else {
+    return `${minutes} minute${minutes > 1 ? "s" : ""} left`;
+  }
+}

@@ -1,5 +1,14 @@
 "use client";
-import { useCallback, useState } from "react";
+import {
+  AwaitedReactNode,
+  JSXElementConstructor,
+  Key,
+  ReactElement,
+  ReactNode,
+  SetStateAction,
+  useCallback,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -23,10 +32,11 @@ import {
   fromText,
   paymentCredentialOf,
   stakeCredentialOf,
+  toText,
 } from "@lucid-evolution/lucid";
 import { CreateCampaign } from "@/lib/cardanoTx/crowdfunding";
 import { useCardano } from "@/context/cardanoContext";
-import { toLovelace } from "@/lib/utils";
+import { getTimeRemaining, toLovelace } from "@/lib/utils";
 import { DatePicker } from "@heroui/date-picker";
 import { set } from "date-fns";
 
@@ -34,14 +44,9 @@ type CrowdfundingModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   action: "submit" | "invest";
-  projectData?: {
-    name: string;
-    location: string;
-    category: string;
-    goal: number;
-    raised: number;
-    days: number;
-  };
+  projectData?: CampaignDatum;
+  raised?: number;
+  goal?: number;
   onProjectSubmit?: (data: any) => void;
 };
 
@@ -50,6 +55,8 @@ const CrowdfundingModal = ({
   onOpenChange,
   action,
   projectData,
+  raised,
+  goal,
 }: CrowdfundingModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [investmentAmount, setInvestmentAmount] = useState(100);
@@ -109,6 +116,14 @@ const CrowdfundingModal = ({
       console.log("Investment Amount:", investmentAmount);
     }
     setIsLoading(false);
+  };
+
+  const getPredefinedAmounts = () => {
+    if (!projectData || !goal) return [0, 0, 0, 0, 0];
+    const baseAmount = goal / Number(projectData.fraction);
+    return [1, 2, 3, 4, 5].map((multiplier) =>
+      Number((baseAmount * multiplier).toFixed(2))
+    );
   };
 
   return (
@@ -280,26 +295,26 @@ const CrowdfundingModal = ({
               </div>
             </div>
           </div>
-        ) : projectData ? (
+        ) : projectData && raised && goal ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Project
                 </p>
-                <p>{projectData.name}</p>
+                <p>{toText(projectData.name)}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Location
                 </p>
-                <p>{projectData.location}</p>
+                <p>{"location"}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Category
                 </p>
-                <p>{projectData.category}</p>
+                <p>{"category"}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
@@ -307,7 +322,7 @@ const CrowdfundingModal = ({
                 </p>
                 <div className="flex items-center">
                   <Timer className="h-4 w-4 mr-1 text-muted-foreground" />
-                  <span>{projectData.days} days</span>
+                  <span>{getTimeRemaining(Number(projectData.deadline))} </span>
                 </div>
               </div>
             </div>
@@ -315,23 +330,22 @@ const CrowdfundingModal = ({
             <div className="space-y-2">
               <div className="flex justify-between text-sm mb-1">
                 <span className="font-medium">
-                  ${(projectData.raised / 1000).toFixed(1)}K raised
+                  ${(raised / 1000).toFixed(1)}K raised
                 </span>
                 <span className="text-muted-foreground">
-                  of ${(projectData.goal / 1000).toFixed(1)}K goal
+                  of ${(goal / 1000).toFixed(1)}K goal
                 </span>
               </div>
               <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full">
                 <div
                   className="h-2 bg-karbon-600 rounded-full"
                   style={{
-                    width: `${(projectData.raised / projectData.goal) * 100}%`,
+                    width: `${(raised / goal) * 100}%`,
                   }}
                 ></div>
               </div>
               <div className="text-sm text-muted-foreground">
-                {Math.round((projectData.raised / projectData.goal) * 100)}%
-                funded
+                {Math.round((raised / goal) * 100)}% funded
               </div>
             </div>
 
@@ -340,9 +354,9 @@ const CrowdfundingModal = ({
                 Investment Amount ($)
               </label>
               <div className="flex items-center space-x-3">
-                {[50, 100, 250, 500].map((amount) => (
+                {getPredefinedAmounts().map((amount: number, index: number) => (
                   <Button
-                    key={amount}
+                    key={index}
                     type="button"
                     variant={
                       investmentAmount === amount ? "default" : "outline"
