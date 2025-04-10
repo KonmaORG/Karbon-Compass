@@ -84,7 +84,6 @@ const Dashboard = () => {
         <DashboardHeader activeApp={activeApp} />
         <main className="flex-1 overflow-y-auto p-4">{renderApp()}</main>
       </div>
-      <Toaster position="top-right" />
     </div>
   );
 };

@@ -21,7 +21,7 @@ export default function RootLayout({
           <QueryClientProvider client={queryClient}>
             <TooltipProvider>
               {/* <Toaster /> */}
-              <Sonner />
+              <Sonner position="top-right" />
               <Navbar />
               {children}
             </TooltipProvider>
