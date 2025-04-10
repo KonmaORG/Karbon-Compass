@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CreditListingCards } from "../marketplaceUtils/CreditListingCards";
-import { MarketplaceSellModal } from "../marketplaceUtils/MarketplaceSellModal";
+import MarketplaceSellModal from "../marketplaceUtils/MarketplaceSellModal";
 
 // Project verification status type
 type VerificationStatus = "pending" | "approved" | "rejected" | "canceled";

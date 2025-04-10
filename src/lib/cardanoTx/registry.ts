@@ -233,8 +233,7 @@ export async function acceptProject(walletConnection: Cardano, utxo: UTxO) {
     const oRefCBOR = Data.to(oRef);
     const assetName = blake2bHex(fromHex(oRefCBOR), undefined, 28);
     const carbonMintAssets = { [policyIDCarbon + assetName]: redeemer.amount };
-    console.log("AssetName: ", assetName);
-    console.log("toText: ", toText(assetName));
+
     // Transaction
     const tx = await lucid
       .newTx()
@@ -255,6 +254,7 @@ export async function acceptProject(walletConnection: Cardano, utxo: UTxO) {
             name: assetName,
             image: "https://avatars.githubusercontent.com/u/106166350",
             category: toText(datum.categories),
+            hName: toText(datum.asset_name),
           },
         },
       })
