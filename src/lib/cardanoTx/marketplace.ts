@@ -5,6 +5,7 @@ import {
   Lucid,
   LucidEvolution,
   paymentCredentialOf,
+  TxSignBuilder,
 } from "@lucid-evolution/lucid";
 
 import {
@@ -38,6 +39,7 @@ export async function Buy(
     const lucid = await Lucid(PROVIDER, NETWORK);
     lucid.selectWallet.fromAPI(walletAPI);
     const owner = vkhToAddress(datum.owner);
+    // address needs to be a tuple
 
     const redeemer: KarbonStoreRedeemer = "Buy";
 
@@ -46,20 +48,26 @@ export async function Buy(
     const ownerPay = calulatePayout(Number(datum.amount)).seller;
     const royaltyPay = calulatePayout(Number(datum.amount)).marketplace;
     const assetQty = Number(utxos[0].assets[token]);
-    const tx = await lucid
+    let tx: TxSignBuilder;
+    const newTx = await lucid
       .newTx()
       .collectFrom(utxos, Data.to(redeemer, KarbonStoreRedeemer))
       .pay.ToAddress(owner, { lovelace: ownerPay })
       .pay.ToAddress(ROYALTYADDR, { lovelace: royaltyPay })
       .pay.ToAddress(address, { [token]: BigInt(qty) })
-      .pay.ToContract(
-        KARBONSTOREADDR,
-        { kind: "inline", value: Data.to(datum, KarbonStoreDatum) },
-        { lovelace: 3_000_000n, [token]: BigInt(assetQty - qty) }
-      )
-      .attach.SpendingValidator(KarbonStoreValidator)
-      .complete();
+      .attach.SpendingValidator(KarbonStoreValidator);
 
+    if (assetQty - qty === 0) {
+      tx = await newTx.complete();
+    } else {
+      tx = await newTx.pay
+        .ToContract(
+          KARBONSTOREADDR,
+          { kind: "inline", value: Data.to(datum, KarbonStoreDatum) },
+          { lovelace: 3_000_000n, [token]: BigInt(assetQty - qty) }
+        )
+        .complete();
+    }
     const signed = await tx.sign.withWallet().complete();
     const txHash = await signed.submit();
 

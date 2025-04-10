@@ -76,7 +76,6 @@ export default function MarketplaceSellModal() {
 
   useEffect(() => {
     async function tokens() {
-      console.log("tokens");
       if (!address || !wallet) return;
       try {
         const lucid = await Lucid(PROVIDER, NETWORK);
@@ -101,7 +100,6 @@ export default function MarketplaceSellModal() {
             }
           });
           setKarbonTokens(quantities);
-          console.log(quantities);
         };
         aggregateTokenQuantities();
       } catch (error: any) {
