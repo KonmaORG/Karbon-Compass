@@ -30,6 +30,8 @@ import { COTPOLICYID, NETWORK, PROVIDER } from "@/config";
 import { Lucid } from "@lucid-evolution/lucid";
 import { blockfrost } from "@/lib/blockfrost";
 import clsx from "clsx";
+import { Sell } from "@/lib/cardanoTx/marketplace";
+import { toast } from "sonner";
 
 // Mock token data
 
@@ -49,14 +51,25 @@ export default function MarketplaceSellModal() {
     setSelectedToken(value);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({
-      token: selectedToken,
-      quantity,
-      price,
-    });
-    setOpen(false);
+    if (!selectedToken) {
+      toast.error("Please select a token");
+      return;
+    }
+    try {
+      const txHash = await Sell(
+        walletConnection,
+        Number(price),
+        selectedToken,
+        Number(quantity)
+      );
+      toast.success("Transaction submitted successfully");
+    } catch (error: any) {
+      console.log("error", error);
+    } finally {
+      setOpen(false);
+    }
   };
 
   const selectedTokenData = selectedToken ? tokenMetadata[selectedToken] : null;

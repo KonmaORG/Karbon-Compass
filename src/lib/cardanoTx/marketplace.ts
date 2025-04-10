@@ -2,11 +2,18 @@ import {
   credentialToAddress,
   Data,
   keyHashToCredential,
+  Lucid,
   LucidEvolution,
   paymentCredentialOf,
 } from "@lucid-evolution/lucid";
 
-import { KARBONSTOREADDR, NETWORK, ROYALTY, ROYALTYADDR } from "@/config";
+import {
+  KARBONSTOREADDR,
+  NETWORK,
+  PROVIDER,
+  ROYALTY,
+  ROYALTYADDR,
+} from "@/config";
 
 import { KarbonStoreValidator } from "@/config/scripts/marketplace/scripts";
 
@@ -14,6 +21,8 @@ import {
   KarbonStoreDatum,
   KarbonStoreRedeemer,
 } from "@/types/cardano/marketplace/types";
+import { Cardano } from "@/context/cardanoContext";
+import { error } from "console";
 
 export async function Buy(
   lucid: LucidEvolution,
@@ -52,29 +61,40 @@ export async function Buy(
 }
 
 export async function Sell(
-  lucid: LucidEvolution,
-  address: string,
+  walletConnection: Cardano,
   price: number,
   token: string,
   qty: number
 ) {
-  const datum: KarbonStoreDatum = {
-    owner: paymentCredentialOf(address).hash,
-    amount: toLovelace(price),
-  };
-  const tx = await lucid
-    .newTx()
-    .pay.ToAddressWithData(
-      KARBONSTOREADDR,
-      { kind: "inline", value: Data.to(datum, KarbonStoreDatum) },
-      { lovelace: 3_000_000n, [token]: BigInt(qty) }
-    )
-    .complete();
+  const { wallet, address } = walletConnection;
 
-  const signed = await tx.sign.withWallet().complete();
-  const txHash = await signed.submit();
+  try {
+    if (!wallet || !address) throw new Error("Wallet Not Connected!");
+    const walletAPI = await wallet.enable();
+    const lucid = await Lucid(PROVIDER, NETWORK);
+    lucid.selectWallet.fromAPI(walletAPI);
+    const datum: KarbonStoreDatum = {
+      owner: paymentCredentialOf(address).hash,
+      amount: toLovelace(price),
+    };
+    const tx = await lucid
+      .newTx()
+      .pay.ToAddressWithData(
+        KARBONSTOREADDR,
+        { kind: "inline", value: Data.to(datum, KarbonStoreDatum) },
+        { lovelace: 3_000_000n, [token]: BigInt(qty) }
+      )
+      .complete();
 
-  console.log("txHash: ", txHash);
+    const signed = await tx.sign.withWallet().complete();
+    const txHash = await signed.submit();
+
+    console.log("txHash: ", txHash);
+    return txHash;
+  } catch (error: any) {
+    console.log("error", error);
+    throw error;
+  }
 }
 
 function vkhToAddress(vkh: string) {
