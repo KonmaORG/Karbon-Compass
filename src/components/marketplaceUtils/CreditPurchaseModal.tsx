@@ -11,123 +11,53 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { FormDescription, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import {
-  ShoppingCart,
-  CreditCard,
-  Wallet,
-  ArrowRight,
-  Shield,
-  ExternalLink,
-} from "lucide-react";
+import { ShoppingCart, Shield, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { CreditListing, PurchaseFormData } from "./types";
+import { KarbonStoreDatum } from "@/types/cardano/datum";
+import { toAda } from "@/lib/utils";
+import { Label } from "../ui/label";
+import { Buy } from "@/lib/cardanoTx/marketplace";
+import { useCardano } from "@/context/cardanoContext";
+import { toast } from "sonner";
 
 interface CreditPurchaseModalProps {
-  credit: CreditListing;
-  trigger?: React.ReactNode;
+  datum: KarbonStoreDatum;
+  metadata: any;
+  token: string;
+  qty: number;
+  trigger: React.ReactNode;
 }
 
 // Purchase validation schema
-const purchaseSchema = z.object({
-  quantity: z
-    .number()
-    .min(1, { message: "Quantity must be at least 1" })
-    .refine((val) => Number.isInteger(val), {
-      message: "Quantity must be a whole number",
-    }),
-  paymentMethod: z.enum(["crypto", "fiat"], {
-    required_error: "Please select a payment method",
-  }),
-  agreeTos: z.boolean().refine((val) => val === true, {
-    message: "You must agree to the terms and conditions",
-  }),
-  buyerWallet: z.string().optional(),
-});
-
 export function CreditPurchaseModal({
-  credit,
+  datum,
+  metadata,
+  token,
+  qty,
   trigger,
 }: CreditPurchaseModalProps) {
-  const { toast } = useToast();
+  const [walletConnection] = useCardano();
+  const [txHash, setTxHash] = useState("");
   const [open, setOpen] = useState(false);
-  const [purchaseStep, setPurchaseStep] = useState<
-    "details" | "payment" | "confirmation"
-  >("details");
+  const [purchaseStep, setPurchaseStep] = useState<"details" | "confirmation">(
+    "details"
+  );
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [purchaseQty, setPurchaseQty] = useState(0);
+  const totalPrice = purchaseQty * toAda(datum.amount);
 
-  const form = useForm<z.infer<typeof purchaseSchema>>({
-    resolver: zodResolver(purchaseSchema),
-    defaultValues: {
-      quantity: 1,
-      paymentMethod: "crypto",
-      agreeTos: false,
-      buyerWallet: "",
-    },
-  });
-
-  const quantity = form.watch("quantity");
-  const totalPrice = quantity * credit.pricePerUnit;
-  const paymentMethod = form.watch("paymentMethod");
-
-  const onSubmit = (data: z.infer<typeof purchaseSchema>) => {
-    // call cardano function to submit
-    // then set the step to confirmation
-
-    if (purchaseStep === "details") {
-      // Start payment processing
+  const onSubmit = async () => {
+    try {
       setProcessingPayment(true);
-
-      // Simulate blockchain transaction
-      setTimeout(() => {
-        setProcessingPayment(false);
-        setPurchaseStep("confirmation");
-      }, 2000);
-      return;
-    }
-
-    if (purchaseStep === "confirmation") {
-      // Complete purchase and close modal
-      const purchaseData: PurchaseFormData = {
-        creditId: credit.id,
-        quantity: data.quantity,
-        totalPrice: totalPrice,
-        paymentMethod: data.paymentMethod,
-        buyerWallet: data.buyerWallet,
-        agreeTos: data.agreeTos,
-      };
-
-      // Here you would typically call an API to complete the purchase
-      console.log("Purchase completed:", purchaseData);
-
-      toast({
-        title: "Purchase Successful",
-        description: `You have successfully purchased ${quantity} carbon credits from ${credit.projectName}`,
-      });
-
-      // Reset form and close dialog
-      form.reset();
-      setPurchaseStep("details");
-      setOpen(false);
+      const txHash = await Buy(walletConnection, datum, token, purchaseQty);
+      setTxHash(txHash);
+      toast.success("Transaction submitted successfully");
+      setPurchaseStep("confirmation");
+    } catch (error) {
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
@@ -147,93 +77,59 @@ export function CreditPurchaseModal({
             <DialogHeader>
               <DialogTitle>Purchase Carbon Credits</DialogTitle>
               <DialogDescription>
-                {credit.projectName} - {credit.certification}
+                {metadata.hName} - {"certification"}
               </DialogDescription>
             </DialogHeader>
 
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4 py-4"
+            <Label>Quantity (tons of CO₂)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={qty}
+              value={purchaseQty}
+              onChange={(e) => setPurchaseQty(+e.target.value)}
+            />
+            <div>Available: {qty.toLocaleString()} credits</div>
+
+            <div className="bg-muted p-4 rounded-md">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm">Price per unit:</span>
+                <span className="font-medium">
+                  ${toAda(datum.amount).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm">Quantity:</span>
+                <span className="font-medium">{purchaseQty}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-border">
+                <span className="font-medium">Total price:</span>
+                <span className="font-bold text-lg">
+                  ${totalPrice.toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            <Checkbox />
+            <div className="space-y-1 leading-none">
+              <Label>I agree to the terms and conditions</Label>
+              <div>
+                By purchasing, you agree that these credits will be tokenized on
+                the blockchain.
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="submit"
+                disabled={processingPayment}
+                onClick={onSubmit}
               >
-                <FormField
-                  control={form.control}
-                  name="quantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantity (tons of CO₂)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={credit.quantity}
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Available: {credit.quantity.toLocaleString()} credits
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="bg-muted p-4 rounded-md">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm">Price per unit:</span>
-                    <span className="font-medium">
-                      ${credit.pricePerUnit.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm">Quantity:</span>
-                    <span className="font-medium">{quantity}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-border">
-                    <span className="font-medium">Total price:</span>
-                    <span className="font-bold text-lg">
-                      ${totalPrice.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="agreeTos"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          I agree to the terms and conditions
-                        </FormLabel>
-                        <FormDescription>
-                          By purchasing, you agree that these credits will be
-                          tokenized on the blockchain.
-                        </FormDescription>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <DialogFooter>
-                  <Button type="submit" disabled={processingPayment}>
-                    {processingPayment
-                      ? "Processing Payment..."
-                      : "Complete Purchase"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
+                {processingPayment
+                  ? "Processing Payment..."
+                  : "Complete Purchase"}
+              </Button>
+            </DialogFooter>
           </>
         )}
 
@@ -257,15 +153,15 @@ export function CreditPurchaseModal({
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Project:</span>
-                    <span className="font-medium">{credit.projectName}</span>
+                    <span className="font-medium">{metadata.hName}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Credit Type:</span>
-                    <span className="font-medium">{credit.type}</span>
+                    <span className="font-medium">{metadata.category}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Quantity:</span>
-                    <span className="font-medium">{quantity} tons CO₂</span>
+                    <span className="font-medium">{purchaseQty} tons CO₂</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total Amount:</span>
@@ -278,8 +174,8 @@ export function CreditPurchaseModal({
                       Transaction ID:
                     </span>
                     <span className="font-mono text-xs flex items-baseline">
-                      0x{Math.random().toString(16).slice(2, 10)}...
-                      {Math.random().toString(16).slice(2, 10)}
+                      {txHash.slice(0, 10)}...
+                      {txHash.slice(-10)}
                       <ExternalLink size={10} className="ml-1 inline" />
                     </span>
                   </div>

@@ -110,16 +110,18 @@ export function CreditListingCards() {
       </CardContent>
       <CardFooter>
         {quantity >= 0 ? (
-          // <CreditPurchaseModal
-          //   credit={credit}
-          //   trigger={
-          //     <Button className="w-full">
-          //       <ShoppingCart className="h-4 w-4 mr-2" />
-          //       Buy Credits
-          //     </Button>
-          //   }
-          // />
-          <>modal</>
+          <CreditPurchaseModal
+            datum={datum}
+            qty={quantity}
+            token={unit}
+            metadata={metadata}
+            trigger={
+              <Button className="w-full">
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Buy Credits
+              </Button>
+            }
+          />
         ) : (
           <Button className="w-full" variant="outline" disabled>
             <Circle className="h-4 w-4 mr-2" />
