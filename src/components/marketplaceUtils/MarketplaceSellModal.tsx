@@ -111,10 +111,6 @@ export default function MarketplaceSellModal() {
     tokens();
   }, [address]);
 
-  async function fetchMetadata(token: string) {
-    const result = await blockfrost.getMetadata(token);
-    return result;
-  }
   useEffect(() => {
     async function loadMetadata() {
       if (!karbonTokens) return;
@@ -122,7 +118,7 @@ export default function MarketplaceSellModal() {
 
       for (const tokenId of Object.keys(karbonTokens)) {
         try {
-          const result = await fetchMetadata(tokenId);
+          const result = await blockfrost.getMetadata(tokenId);
           metadata[tokenId] = result;
         } catch (error) {
           console.error(`Error fetching metadata for ${tokenId}:`, error);
