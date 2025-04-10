@@ -30,6 +30,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { CreditListingCards } from "../marketplaceUtils/CreditListingCards";
+import { MarketplaceSellModal } from "../marketplaceUtils/MarketplaceSellModal";
 
 // Project verification status type
 type VerificationStatus = "pending" | "approved" | "rejected" | "canceled";
@@ -288,12 +290,8 @@ const CrowdfundingApp = () => {
               </Badge>
             )}
           </Button>
-          <Button
-            className="bg-karbon-600 hover:bg-karbon-700"
-            onClick={openSubmitModal}
-          >
-            <FileText className="mr-2 h-4 w-4" /> Submit Project
-          </Button>
+
+          <MarketplaceSellModal />
         </div>
       </div>
 
@@ -362,84 +360,14 @@ const CrowdfundingApp = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {approvedProjects.map((project) => (
-              <Card key={project.id} className="border overflow-hidden">
-                <div className="h-48 bg-gradient-to-r from-karbon-100 to-ocean-100 dark:from-karbon-900 dark:to-ocean-900 flex items-center justify-center">
-                  <span className="text-lg font-medium text-gray-500 dark:text-gray-400">
-                    Project Image
-                  </span>
-                </div>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{project.name}</CardTitle>
-                      <CardDescription>
-                        {project.location} • {project.category}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getVerificationBadge(project.verificationStatus)}
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Timer className="h-4 w-4 mr-1" />
-                        <span>{project.days} days left</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="font-medium">
-                          ${(project.raised / 1000).toFixed(1)}K raised
-                        </span>
-                        <span className="text-muted-foreground">
-                          of ${(project.goal / 1000).toFixed(1)}K goal
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full">
-                        <div
-                          className="h-2 bg-karbon-600 rounded-full"
-                          style={{
-                            width: `${(project.raised / project.goal) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="text-sm text-muted-foreground">
-                        {Math.round((project.raised / project.goal) * 100)}%
-                        funded
-                      </div>
-                      <div className="flex gap-2">
-                        {isProjectOwner(project) && (
-                          <Button
-                            variant="outline"
-                            className="border-red-200 text-red-600 hover:bg-red-50"
-                            onClick={() => openCancelDialog(project)}
-                          >
-                            Cancel Project
-                          </Button>
-                        )}
-                        <Button
-                          className="bg-ocean-600 hover:bg-ocean-700"
-                          onClick={() => openInvestModal(project)}
-                        >
-                          Invest Now
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <CreditListingCards />
 
-            {approvedProjects.length === 0 && (
+            {/* {approvedProjects.length === 0 && (
               <div className="col-span-2 py-12 text-center text-muted-foreground">
                 No approved projects available for funding yet.
               </div>
-            )}
+            )} */}
           </div>
         </CardContent>
       </Card>
@@ -632,14 +560,6 @@ const CrowdfundingApp = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <CrowdfundingModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        action={modalAction}
-        // projectData={selectedProject}
-        onProjectSubmit={handleProjectSubmit}
-      />
     </div>
   );
 };
