@@ -67,3 +67,10 @@ export async function getKarbonDatum(lucid: LucidEvolution, utxo: UTxO) {
   const datum = Data.castFrom(data, KarbonDatum);
   return datum;
 }
+
+export function tupleToAddress(tuple: [string, string]) {
+  const pc = keyHashToCredential(tuple[0]);
+  const sc = keyHashToCredential(tuple[1]);
+  const address = credentialToAddress(NETWORK, pc, sc);
+  return address;
+}

@@ -25,6 +25,7 @@ import {
 } from "@/types/cardano/marketplace/types";
 import { Cardano } from "@/context/cardanoContext";
 import { error } from "console";
+import { tupleToAddress } from "./utils";
 
 export async function Buy(
   walletConnection: Cardano,
@@ -39,24 +40,12 @@ export async function Buy(
     const walletAPI = await wallet.enable();
     const lucid = await Lucid(PROVIDER, NETWORK);
     lucid.selectWallet.fromAPI(walletAPI);
-    const owner = vkhToAddress(datum.owner[0]);
-    // address needs to be a tuple
-
-    ///////
-    const userScriptAddress = credentialToAddress(
-      NETWORK,
-      paymentCredentialOf(address),
-      stakeCredentialOf("")
-    );
-
-    /////////
+    const owner = tupleToAddress(datum.owner);
 
     const redeemer: KarbonStoreRedeemer = "Buy";
 
     const utxos = await lucid.utxosAtWithUnit(KARBONSTOREADDR, token);
-
-    const ownerPay = calulatePayout(Number(datum.amount)).seller;
-    const royaltyPay = calulatePayout(Number(datum.amount)).marketplace;
+    const { royaltyPay, ownerPay } = calulatePayout(Number(datum.amount) * qty);
     const assetQty = Number(utxos[0].assets[token]);
     let tx: TxSignBuilder;
     const newTx = await lucid
@@ -96,14 +85,16 @@ export async function Sell(
   qty: number
 ) {
   const { wallet, address } = walletConnection;
-
   try {
     if (!wallet || !address) throw new Error("Wallet Not Connected!");
     const walletAPI = await wallet.enable();
     const lucid = await Lucid(PROVIDER, NETWORK);
     lucid.selectWallet.fromAPI(walletAPI);
     const datum: KarbonStoreDatum = {
-      owner: [paymentCredentialOf(address).hash, ""],
+      owner: [
+        paymentCredentialOf(address).hash,
+        stakeCredentialOf(address).hash || "",
+      ],
       amount: toLovelace(price),
     };
     const tx = await lucid
@@ -126,18 +117,11 @@ export async function Sell(
   }
 }
 
-function vkhToAddress(vkh: string) {
-  const credential = keyHashToCredential(vkh);
-  const address = credentialToAddress(NETWORK, credential);
-
-  return address;
-}
-
 function calulatePayout(amount: number) {
   let marketplace = (amount * ROYALTY) / 100;
   let seller = amount - marketplace;
 
-  return { marketplace: BigInt(marketplace + 10), seller: BigInt(seller + 10) };
+  return { royaltyPay: BigInt(marketplace + 1), ownerPay: BigInt(seller + 1) };
 }
 
 function toLovelace(ada: number) {

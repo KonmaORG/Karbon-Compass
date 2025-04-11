@@ -41,7 +41,11 @@ import {
 } from "@/types/cardano/crowdfunding/types";
 import { Cardano } from "@/context/cardanoContext";
 import { handleError } from "../utils";
-import { multiSignwithPrivateKey, privateKeytoAddress } from "./utils";
+import {
+  multiSignwithPrivateKey,
+  privateKeytoAddress,
+  tupleToAddress,
+} from "./utils";
 
 async function FindRefUtxo(lucid: LucidEvolution, address: string) {
   const asset = fromText("ConfigNFT");
@@ -666,11 +670,4 @@ function remainingRewardToken(utxos: UTxO[], rewardToken: string) {
     }
   }
   return 0;
-}
-
-function tupleToAddress(tuple: [string, string]) {
-  const pc = keyHashToCredential(tuple[0]);
-  const sc = keyHashToCredential(tuple[1]);
-  const address = credentialToAddress(NETWORK, pc, sc);
-  return address;
 }
