@@ -11,8 +11,17 @@ import IoTMonitoringApp from "@/components/apps/IoTMonitoringApp";
 import FraudDetectionApp from "@/components/apps/FraudDetectionApp";
 import CorporateReportingApp from "@/components/apps/CorporateReportingApp";
 import GovernanceApp from "@/components/apps/GovernanceApp";
-import CrowdfundingApp from "@/components/apps/CrowdfundingApp";
+// import CrowdfundingApp from "@/components/apps/CrowdfundingApp";
 import EducationalApp from "@/components/apps/EducationalApp";
+// import CrowdfundingApp from "@/components/apps/CrowdfundingApp";
+import dynamic from "next/dynamic";
+
+const CrowdfundingApp = dynamic(
+  () => import("@/components/apps/CrowdfundingApp"),
+  {
+    ssr: false,
+  }
+);
 
 export type AppType =
   | "overview"
