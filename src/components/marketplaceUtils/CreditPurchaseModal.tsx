@@ -31,7 +31,7 @@ interface CreditPurchaseModalProps {
 }
 
 // Purchase validation schema
-export function CreditPurchaseModal({
+export default function CreditPurchaseModal({
   datum,
   metadata,
   token,

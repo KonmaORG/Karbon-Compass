@@ -30,8 +30,19 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CreditListingCards } from "../marketplaceUtils/CreditListingCards";
-import MarketplaceSellModal from "../marketplaceUtils/MarketplaceSellModal";
+import dynamic from "next/dynamic";
+const CreditListingCards = dynamic(
+  () => import("../marketplaceUtils/CreditListingCards"),
+  {
+    ssr: false,
+  }
+);
+const MarketplaceSellModal = dynamic(
+  () => import("../marketplaceUtils/MarketplaceSellModal"),
+  {
+    ssr: false,
+  }
+);
 
 // Project verification status type
 type VerificationStatus = "pending" | "approved" | "rejected" | "canceled";
