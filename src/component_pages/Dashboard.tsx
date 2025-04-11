@@ -17,6 +17,12 @@ import dynamic from "next/dynamic";
 const RegistryApp = dynamic(() => import("@/components/apps/RegistryApp"), {
   ssr: false,
 });
+const CrowdfundingApp = dynamic(
+  () => import("@/components/apps/CrowdfundingApp"),
+  {
+    ssr: false,
+  }
+);
 export type AppType =
   | "overview"
   | "registry"
@@ -61,8 +67,8 @@ const Dashboard = () => {
         return <RegistryApp />;
       case "marketplace":
         return <MarketplaceApp />;
-      // case "footprint":
-      //   return <FootprintApp />;
+      case "footprint":
+        return <FootprintApp />;
       case "iot":
         return <IoTMonitoringApp />;
       case "fraud":
@@ -71,8 +77,8 @@ const Dashboard = () => {
         return <CorporateReportingApp />;
       case "governance":
         return <GovernanceApp />;
-      // case "crowdfunding":
-      //   return <CrowdfundingApp />;
+      case "crowdfunding":
+        return <CrowdfundingApp />;
       case "educational":
         return <EducationalApp />;
       default:
