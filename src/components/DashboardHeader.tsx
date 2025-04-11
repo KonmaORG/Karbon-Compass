@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+"use client";
+import { useState } from "react";
 import { Bell, User, Settings, Wallet, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,18 +23,25 @@ import { AppType } from "@/component_pages/Dashboard";
 import Link from "next/link";
 import { CardanoWallet } from "@/types/cardano/cardano";
 import { useCardano } from "@/context/cardanoContext";
-import { hexToBech32 } from "@/lib/utils";
-import { NETWORK, PROVIDER } from "@/config";
-import { Lucid } from "@lucid-evolution/lucid";
+import dynamic from "next/dynamic";
+const CardanoWalletConnector = dynamic(
+  () => import("./CardanoWalletConnector"),
+  {
+    ssr: false,
+    loading: () => (
+      <DropdownMenuItem disabled>Loading wallets...</DropdownMenuItem>
+    ),
+  }
+);
 interface DashboardHeaderProps {
   activeApp: AppType;
 }
 
 type BlockchainNetwork = "ethereum" | "cardano";
 type EthereumWalletType = "MetaMask" | "WalletConnect" | null;
-type CardanoWalletType = "Yoroi" | "Lace" | null;
-type WalletType = EthereumWalletType | CardanoWalletType | null;
-type UserRole = "admin" | "verifier" | "user" | null;
+export type CardanoWalletType = "Yoroi" | "Lace" | null;
+export type WalletType = EthereumWalletType | CardanoWalletType | null;
+export type UserRole = "admin" | "verifier" | "user" | null;
 
 const getAppTitle = (activeApp: AppType): string => {
   switch (activeApp) {
@@ -67,44 +75,11 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [walletType, setWalletType] = useState<WalletType>(null);
-  const [cardanoWallets, setCardanoWallets] = useState<CardanoWallet[]>([]);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [selectedNetwork, setSelectedNetwork] =
     useState<BlockchainNetwork>("ethereum");
 
-  useEffect(() => {
-    const installedWallets: CardanoWallet[] = [];
-    const { cardano } = window;
-
-    for (const c in cardano) {
-      const wallet = cardano[c];
-
-      if (!wallet.apiVersion) continue;
-      installedWallets.push(wallet);
-    }
-    const updatedWallets = cardanoWallets;
-    installedWallets.forEach((provider) => {
-      const index = updatedWallets.findIndex(
-        (wallet) => wallet.name.toLowerCase() === provider.name.toLowerCase()
-      );
-      if (index !== -1) {
-        updatedWallets[index] = {
-          ...updatedWallets[index],
-          enable: provider.enable,
-        };
-      } else {
-        updatedWallets.push({
-          name: provider.name,
-          enable: provider.enable,
-          icon: provider.icon,
-        });
-      }
-    });
-    setCardanoWallets(
-      updatedWallets.sort((a, b) => a.name.localeCompare(b.name))
-    );
-  }, []);
   const connectWalletMock = async (type: WalletType) => {
     setIsConnecting(true);
 
@@ -168,25 +143,6 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
       if (selectedNetwork === "ethereum") {
         // Cardano Wallet connection logic
         console.log("Connecting to Ethereum network...");
-      } else {
-        const api = await wallet.enable();
-        const lucid = await Lucid(PROVIDER, NETWORK);
-        await lucid.selectWallet.fromAPI(api);
-        const address = await lucid.wallet().address();
-        const balance = parseInt(await api.getBalance());
-        console.log(address);
-        setWalletConnection((prev: any) => {
-          return { ...prev, wallet, address, balance };
-        });
-        setWalletAddress(address);
-        setWalletType(wallet.name as WalletType);
-        setIsConnected(true);
-        setUserRole("user"); // Default role for Cardano wallets
-        toast.success(
-          `Wallet connected: ${wallet.name} on ${
-            selectedNetwork.charAt(0).toUpperCase() + selectedNetwork.slice(1)
-          }`
-        );
       }
     } catch (error) {
       toast.error("Failed to connect wallet");
@@ -263,15 +219,14 @@ const DashboardHeader = ({ activeApp }: DashboardHeaderProps) => {
     } else {
       return (
         <>
-          {cardanoWallets.map((wallet) => (
-            <DropdownMenuItem
-              key={wallet.name}
-              disabled={isConnecting}
-              onClick={() => connectWallet(wallet)}
-            >
-              {wallet.name}
-            </DropdownMenuItem>
-          ))}
+          <CardanoWalletConnector
+            isConnecting={isConnecting}
+            setIsConnected={setIsConnected}
+            setUserRole={setUserRole}
+            setWalletAddress={setWalletAddress}
+            setWalletType={setWalletType}
+            setIsConnecting={setIsConnecting}
+          />
         </>
       );
     }
