@@ -5,6 +5,7 @@ import {
   Lucid,
   LucidEvolution,
   paymentCredentialOf,
+  stakeCredentialOf,
   TxSignBuilder,
 } from "@lucid-evolution/lucid";
 
@@ -38,8 +39,17 @@ export async function Buy(
     const walletAPI = await wallet.enable();
     const lucid = await Lucid(PROVIDER, NETWORK);
     lucid.selectWallet.fromAPI(walletAPI);
-    const owner = vkhToAddress(datum.owner);
+    const owner = vkhToAddress(datum.owner[0]);
     // address needs to be a tuple
+
+    ///////
+    const userScriptAddress = credentialToAddress(
+      NETWORK,
+      paymentCredentialOf(address),
+      stakeCredentialOf("")
+    );
+
+    /////////
 
     const redeemer: KarbonStoreRedeemer = "Buy";
 
@@ -93,7 +103,7 @@ export async function Sell(
     const lucid = await Lucid(PROVIDER, NETWORK);
     lucid.selectWallet.fromAPI(walletAPI);
     const datum: KarbonStoreDatum = {
-      owner: paymentCredentialOf(address).hash,
+      owner: [paymentCredentialOf(address).hash, ""],
       amount: toLovelace(price),
     };
     const tx = await lucid
