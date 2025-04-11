@@ -14,6 +14,7 @@ import {
   mintingPolicyToId,
   paymentCredentialOf,
   stakeCredentialOf,
+  toText,
   TxSignBuilder,
   UTxO,
   Validator,
@@ -232,6 +233,7 @@ export async function acceptProject(walletConnection: Cardano, utxo: UTxO) {
     const oRefCBOR = Data.to(oRef);
     const assetName = blake2bHex(fromHex(oRefCBOR), undefined, 28);
     const carbonMintAssets = { [policyIDCarbon + assetName]: redeemer.amount };
+
     // Transaction
     const tx = await lucid
       .newTx()
@@ -246,6 +248,16 @@ export async function acceptProject(walletConnection: Cardano, utxo: UTxO) {
         Data.to(redeemerValidatorMint, KarbonRedeemerMint)
       )
       .attach.MintingPolicy(validatorContract)
+      .attachMetadata(721, {
+        [policyIDCarbon]: {
+          [assetName]: {
+            name: assetName,
+            image: "https://avatars.githubusercontent.com/u/106166350",
+            category: toText(datum.categories),
+            hName: toText(datum.asset_name),
+          },
+        },
+      })
       .addSigner(await privateKeytoAddress(SIGNER1))
       .addSigner(await privateKeytoAddress(SIGNER2))
       .complete();

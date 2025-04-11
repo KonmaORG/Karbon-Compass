@@ -46,7 +46,7 @@ export const KARBONSTOREADDR = validatorToAddress(
 
 // EMISSION
 export const COTPOLICYID: PolicyId =
-  "c51587c8961294b98b440c30ec96cdf9b4d7bde97a960c7cb62f3c78";
+  "68d6e7d81446bb1b72ef42759185bba6e686fc3111eeb9e9af6bafbe";
 export const identificationPolicyid: PolicyId =
   "973ffbcd6c7553827e7c9c0343adb780d5502553a1427cf8113808db";
 

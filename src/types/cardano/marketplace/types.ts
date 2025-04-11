@@ -9,8 +9,15 @@ export type Wallet = {
   enable(): Promise<WalletApi>;
 };
 
+export const PaymentKeyHashSchema = Data.Bytes();
+export const StakeKeyHashSchema = Data.Bytes();
+
+export const AddressSchema = Data.Tuple([
+  PaymentKeyHashSchema,
+  StakeKeyHashSchema,
+]);
 export const KarbonStoreDatumSchema = Data.Object({
-  owner: Data.Bytes(),
+  owner: AddressSchema,
   amount: Data.Integer(),
 });
 export type KarbonStoreDatum = Data.Static<typeof KarbonStoreDatumSchema>;

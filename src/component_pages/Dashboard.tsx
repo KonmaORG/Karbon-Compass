@@ -1,19 +1,28 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import DashboardOverview from "@/components/DashboardOverview";
-import RegistryApp from "@/components/apps/RegistryApp";
+// import RegistryApp from "@/components/apps/RegistryApp";
 import MarketplaceApp from "@/components/apps/MarketplaceApp";
 import FootprintApp from "@/components/apps/FootprintApp";
 import IoTMonitoringApp from "@/components/apps/IoTMonitoringApp";
 import FraudDetectionApp from "@/components/apps/FraudDetectionApp";
 import CorporateReportingApp from "@/components/apps/CorporateReportingApp";
 import GovernanceApp from "@/components/apps/GovernanceApp";
-import CrowdfundingApp from "@/components/apps/CrowdfundingApp";
+// import CrowdfundingApp from "@/components/apps/CrowdfundingApp";
 import EducationalApp from "@/components/apps/EducationalApp";
-
+import dynamic from "next/dynamic";
+const RegistryApp = dynamic(() => import("@/components/apps/RegistryApp"), {
+  ssr: false,
+});
+const CrowdfundingApp = dynamic(
+  () => import("@/components/apps/CrowdfundingApp"),
+  {
+    ssr: false,
+  }
+);
 export type AppType =
   | "overview"
   | "registry"
@@ -84,7 +93,6 @@ const Dashboard = () => {
         <DashboardHeader activeApp={activeApp} />
         <main className="flex-1 overflow-y-auto p-4">{renderApp()}</main>
       </div>
-      <Toaster position="top-right" />
     </div>
   );
 };
