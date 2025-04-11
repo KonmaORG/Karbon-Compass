@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Circle, Clock, Info, ShoppingCart } from "lucide-react";
-import { CreditPurchaseModal } from "./CreditPurchaseModal";
+import CreditPurchaseModal from "./CreditPurchaseModal";
 import { CreditListing, creditListings } from "./types";
 import { useCardano } from "@/context/cardanoContext";
 import { useEffect, useState } from "react";
@@ -24,7 +24,7 @@ interface CreditListingCardsProps {
   credits?: CreditListing[];
 }
 
-export function CreditListingCards() {
+export default function CreditListingCards() {
   const [balance, setBalance] = useState<
     { unit: string; quantity: number; datum: KarbonStoreDatum; metadata: any }[]
   >([]);

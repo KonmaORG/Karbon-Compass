@@ -9,7 +9,14 @@ import {
 } from "@/components/ui/card";
 import { LineChart, TrendingDown, Leaf, ActivitySquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import FootprintModal from "./FootprintModal";
+import dynamic from "next/dynamic";
+// import FootprintModal from "./FootprintModal";
+const FootprintModal = dynamic(
+  () => import("@/components/apps/FootprintModal"),
+  {
+    ssr: false,
+  }
+);
 
 const FootprintApp = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
