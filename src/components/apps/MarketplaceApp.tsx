@@ -287,9 +287,9 @@ const CrowdfundingApp = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Project Crowdfunding</h2>
+        <h2 className="text-2xl font-bold">Carbon MarketPlace</h2>
         <div className="flex gap-2">
-          <Button
+          {/* <Button
             className="bg-amber-600 hover:bg-amber-700"
             onClick={openVerificationDialog}
           >
@@ -300,7 +300,7 @@ const CrowdfundingApp = () => {
                 {pendingVerificationCount}
               </Badge>
             )}
-          </Button>
+          </Button> */}
 
           <MarketplaceSellModal />
         </div>
