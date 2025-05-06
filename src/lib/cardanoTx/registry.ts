@@ -1,3 +1,5 @@
+"use client";
+
 import {
   ConfigDatumHolderValidator,
   ValidatorContract,
@@ -49,6 +51,8 @@ import {
   privateKeytoAddress,
   refUtxo,
 } from "./utils";
+import { useState } from "react";
+import { CardanoWallet, Multisig } from "@/types/cardano/cardano";
 
 export async function submit(tx: TxSignBuilder) {
   const signed = await tx.sign.withWallet().complete();
@@ -168,16 +172,27 @@ export async function rejectProject(walletConnection: Cardano, utxo: UTxO) {
       .attach.SpendingValidator(validatorContract)
       .mintAssets(burnedAssets, redeemer)
       .attach.MintingPolicy(mintingValidator)
-      .addSigner(await privateKeytoAddress(SIGNER1))
-      .addSigner(await privateKeytoAddress(SIGNER2))
+      // .addSigner(await privateKeytoAddress(SIGNER1))
+      // .addSigner(await privateKeytoAddress(SIGNER2))
+      .addSigner(
+        "addr_test1qzk08tz3s7xcaxq5q0udh5kpm6fz8vhpd230c07nehtzl5ahaqav4a8stg7sfudah7uxw5g9umv897ppygy559le55tql9690r"
+      )
+      .addSigner(
+        "addr_test1qppjp6z53cr6axg59ezf93vlcqqva7wg6d5zfxr5fctnsuveaxzar94mukjwdp323ahhs3tsn0nmawextjtkfztcs20q6fmam2"
+      )
+      .addSigner(
+        "addr_test1qzzxrfxg6hq8zerw8g85cvcpxutjtgez5v75rs99kdnn404cfuf2xydw2zrehxmvd3k9nqywe3d6mn64a08ncc5h5s3qd5ewlk"
+      )
       .complete();
+    const partialSign = await tx.partialSign.withWallet();
+    const txcbor = tx.toCBOR();
+    return txcbor;
+    // const signed = await multiSignwithPrivateKey(tx, [SIGNER1, SIGNER2]);
+    // const txHash = await submit(signed);
 
-    const signed = await multiSignwithPrivateKey(tx, [SIGNER1, SIGNER2]);
-    const txHash = await submit(signed);
-
-    console.log("-----------ProjectReject---------");
-    console.log("txHash: ", txHash);
-    return { status: "ok", txHash };
+    // console.log("-----------ProjectReject---------");
+    // console.log("txHash: ", txHash);
+    // return { status: "ok", txHash };
   } catch (error: any) {
     console.log(error);
     throw { error: handleError(error) };
@@ -192,6 +207,35 @@ export async function acceptProject(walletConnection: Cardano, utxo: UTxO) {
     const walletAPI = await wallet.enable();
     const lucid = await Lucid(PROVIDER, NETWORK);
     lucid.selectWallet.fromAPI(walletAPI);
+    // const configNFT = {
+    //   [identificationPolicyid + fromText("KarbonIdentificationNFT")]: 1n,
+    // };
+
+    const signer: Multisig = {
+      required: 3n,
+
+      signers: [
+        paymentCredentialOf(
+          "addr_test1qzk08tz3s7xcaxq5q0udh5kpm6fz8vhpd230c07nehtzl5ahaqav4a8stg7sfudah7uxw5g9umv897ppygy559le55tql9690r"
+        ).hash,
+
+        paymentCredentialOf(
+          "addr_test1qppjp6z53cr6axg59ezf93vlcqqva7wg6d5zfxr5fctnsuveaxzar94mukjwdp323ahhs3tsn0nmawextjtkfztcs20q6fmam2"
+        ).hash,
+
+        paymentCredentialOf(
+          "addr_test1qzzxrfxg6hq8zerw8g85cvcpxutjtgez5v75rs99kdnn404cfuf2xydw2zrehxmvd3k9nqywe3d6mn64a08ncc5h5s3qd5ewlk"
+        ).hash,
+
+        paymentCredentialOf(
+          "addr_test1qr3deh8jxn9ejxmuunv6krgtt6q600tt289pkdhg0vrfcvvrm9x488u4tefkkjay9k49yvdwc459uxc2064eulk2raaqjzwsv3"
+        ).hash,
+
+        paymentCredentialOf(
+          "addr_test1qzs3pj8vvkhu8d7g0p3sfj8896wds459gqcdes04c5fp7pcs2k7ckl5mly9f89s6zpnx9av7qnl59edp0jy2ac6twtmss44zee"
+        ).hash,
+      ],
+    };
 
     const mintingValidator: Validator = ValidatorMinter();
     const policyIDMinter = mintingPolicyToId(mintingValidator);
@@ -258,17 +302,78 @@ export async function acceptProject(walletConnection: Cardano, utxo: UTxO) {
           },
         },
       })
-      .addSigner(await privateKeytoAddress(SIGNER1))
-      .addSigner(await privateKeytoAddress(SIGNER2))
+      // .addSigner(await privateKeytoAddress(SIGNER1))
+      // .addSigner(await privateKeytoAddress(SIGNER2))
+      .addSigner(
+        "addr_test1qzk08tz3s7xcaxq5q0udh5kpm6fz8vhpd230c07nehtzl5ahaqav4a8stg7sfudah7uxw5g9umv897ppygy559le55tql9690r"
+      )
+      .addSigner(
+        "addr_test1qppjp6z53cr6axg59ezf93vlcqqva7wg6d5zfxr5fctnsuveaxzar94mukjwdp323ahhs3tsn0nmawextjtkfztcs20q6fmam2"
+      )
+      .addSigner(
+        "addr_test1qzzxrfxg6hq8zerw8g85cvcpxutjtgez5v75rs99kdnn404cfuf2xydw2zrehxmvd3k9nqywe3d6mn64a08ncc5h5s3qd5ewlk"
+      )
       .complete();
 
-    const signed = await multiSignwithPrivateKey(tx, [SIGNER1, SIGNER2]);
-    const txHash = await submit(signed);
+    // const signed = await multiSignwithPrivateKey(tx, [SIGNER1, SIGNER2]);
+    // const txHash = await submit(signed);
+    // const partialSign = await tx.partialSign.withWallet();
+    const txcbor = tx.toCBOR();
 
-    console.log("-----------ProjectAccept---------");
-    console.log("txHash: ", txHash);
-    return { status: "ok", txHash };
+    return txcbor;
+
+    // console.log("partialSign1 added try with next signer ");
+
+    // console.log("-----------ProjectAccept---------");
+    // console.log("txHash: ", txcbor);
+    // return { status: "ok", txcbor };
   } catch (error: any) {
+    console.log(error);
+    throw { error: handleError(error) };
+  }
+}
+
+export async function addSigner(walletConnection: Cardano, Txcbor) {
+  const { wallet, address } = walletConnection;
+
+  if (!wallet || !address) throw new Error("Wallet Not Connected!");
+  const walletAPI = await wallet.enable();
+  const lucid = await Lucid(PROVIDER, NETWORK);
+  lucid.selectWallet.fromAPI(walletAPI);
+  if (!lucid) {
+    console.log("wallet not connected");
+    throw new Error("Wallet Not Connected!");
+  }
+  const tx = lucid.fromTx(Txcbor);
+  const partialSign = await tx.partialSign.withWallet();
+  return partialSign;
+}
+
+export async function submitTX(
+  walletConnection: Cardano,
+  Txcbor: string,
+  partialSign1,
+  partialSign2,
+  partialSign3
+) {
+  const { wallet, address } = walletConnection;
+  try {
+    if (!wallet || !address) throw new Error("Wallet Not Connected!");
+    const walletAPI = await wallet.enable();
+    const lucid = await Lucid(PROVIDER, NETWORK);
+    lucid.selectWallet.fromAPI(walletAPI);
+
+    const tx = lucid.fromTx(Txcbor);
+    const signed = await tx
+      .assemble([partialSign1, partialSign2, partialSign3])
+      .complete();
+
+    console.log("assembled");
+    const txHash = await signed.submit();
+
+    console.log("txHash: ", txHash);
+    return txHash;
+  } catch (error) {
     console.log(error);
     throw { error: handleError(error) };
   }

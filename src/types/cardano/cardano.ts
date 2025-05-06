@@ -54,3 +54,13 @@ export const AcceptRejectActionSchema = Data.Enum([
   AcceptRejectAction.Reject.Schema,
 ]);
 //#endregion
+
+////// multisig
+
+export const Atleast = Data.Integer();
+export const MultisigSchema = Data.Object({
+  required: Atleast,
+  signers: Data.Array(Data.Bytes()),
+});
+export type Multisig = Data.Static<typeof MultisigSchema>;
+export const Multisig = MultisigSchema as unknown as Multisig;

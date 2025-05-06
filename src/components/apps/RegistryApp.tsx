@@ -60,8 +60,14 @@ import {
 import { ValidatorContract, ValidatorMinter } from "@/config/scripts/scripts";
 import { KarbonDatum } from "@/types/cardano/datum";
 import { Provider } from "@radix-ui/react-toast";
-import { acceptProject, rejectProject } from "@/lib/cardanoTx/registry";
+import {
+  acceptProject,
+  addSigner,
+  rejectProject,
+  submitTX,
+} from "@/lib/cardanoTx/registry";
 import { useCardano } from "@/context/cardanoContext";
+import { error } from "console";
 
 export type VerificationStatus =
   | "pending"
@@ -104,6 +110,12 @@ const RegistryApp = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [cardanoProjects, setCardanoProjects] = useState<UTxO[]>([]);
+
+  const [Txcbor, setTxcbor] = useState<string>("");
+  const [partialSign1, setPartialSign1] = useState<string>("");
+  const [partialSign2, setPartialSign2] = useState<string>("");
+  const [partialSign3, setPartialSign3] = useState<string>("");
+
   const [projects, setProjects] = useState<Project[]>([
     {
       id: 1,
@@ -819,6 +831,14 @@ const RegistryApp = () => {
                       getVerificationStatusBadge={getVerificationStatusBadge}
                       setIsVerificationDialogOpen={setIsVerificationDialogOpen}
                       setSelectedProject={setSelectedProject}
+                      partialSign1={partialSign1}
+                      partialSign2={partialSign2}
+                      partialSign3={partialSign3}
+                      setPartialSign1={setPartialSign1}
+                      setPartialSign2={setPartialSign2}
+                      setPartialSign3={setPartialSign3}
+                      setTxcbor={setTxcbor}
+                      Txcbor={Txcbor}
                       mockProject={filteredProjects[index]}
                     />
                   </Card>
@@ -904,6 +924,14 @@ interface ProjectVerifyCardProps {
   setIsVerificationDialogOpen: Dispatch<SetStateAction<boolean>>;
   setSelectedProject: Dispatch<SetStateAction<Project | null>>;
   mockProject: Project;
+  partialSign1: string;
+  partialSign2: string;
+  partialSign3: string;
+  setPartialSign1: Dispatch<SetStateAction<string>>;
+  setPartialSign2: Dispatch<SetStateAction<string>>;
+  setPartialSign3: Dispatch<SetStateAction<string>>;
+  setTxcbor: Dispatch<SetStateAction<string>>;
+  Txcbor: string;
 }
 function ProjectVerifyCard({
   project,
@@ -911,9 +939,18 @@ function ProjectVerifyCard({
   setIsVerificationDialogOpen,
   setSelectedProject,
   mockProject,
+  partialSign1,
+  partialSign2,
+  partialSign3,
+  setPartialSign1,
+  setPartialSign2,
+  setPartialSign3,
+  setTxcbor,
+  Txcbor,
 }: ProjectVerifyCardProps) {
   const [datum, setDatum] = useState<KarbonDatum | undefined>(undefined);
   const [walletConnection] = useCardano();
+
   useEffect(() => {
     async function fetchDatum() {
       const lucid = await Lucid(PROVIDER, NETWORK);
@@ -929,7 +966,9 @@ function ProjectVerifyCard({
     try {
       let functionCallAction =
         confirmAction === "approve" ? acceptProject : rejectProject;
-      await functionCallAction(walletConnection, project);
+      let CBOR = await functionCallAction(walletConnection, project);
+
+      setTxcbor(CBOR);
 
       toast.success(
         `${toText(datum.asset_name)} ${confirmAction}d successfully`
@@ -938,6 +977,40 @@ function ProjectVerifyCard({
       toast.error(`${toText(datum.asset_name)} ${confirmAction}d failed`);
     }
   };
+
+  async function addsign() {
+    try {
+      let multisign = await addSigner(walletConnection, Txcbor);
+      // const partialSign3 = await partialSign.withWallet();
+
+      if (!partialSign1) {
+        setPartialSign1(multisign);
+        console.log("1st signed");
+      } else if (!partialSign2) {
+        setPartialSign2(multisign);
+        console.log("2nd signed");
+      } else {
+        console.log("3rd signed");
+        console.log(partialSign1);
+        console.log(partialSign2);
+        console.log(multisign);
+        console.log("------------------------");
+        console.log(Txcbor);
+
+        let submit = await submitTX(
+          walletConnection,
+          Txcbor,
+          partialSign1,
+          partialSign2,
+          multisign
+        );
+        toast.success(`submitted successfully, ${submit}`);
+      }
+    } catch (error: any) {
+      // console.log("afer if ");
+      toast.error("Failed to add signer");
+    }
+  }
 
   return (
     datum && (
@@ -981,6 +1054,15 @@ function ProjectVerifyCard({
             >
               Approve
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+              onClick={() => addsign()}
+            >
+              multisign
+            </Button>
+
             <Button
               size="sm"
               variant="outline"
